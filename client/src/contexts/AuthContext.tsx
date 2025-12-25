@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { authApi, User } from "@/services/api";
+import { api, User } from "@/services/api";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (token: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -18,10 +19,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session on app load
+    // Check for existing session
     const token = localStorage.getItem("auth_token");
     if (token) {
-      authApi.getProfile()
+      api.getProfile()
         .then((userData) => {
           setUser(userData);
         })
@@ -37,24 +38,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const result = await authApi.login(email, password);
+    const result = await api.login(email, password);
+    localStorage.setItem("auth_token", result.token);
+    setUser(result.user);
+  };
+
+  const loginWithGoogle = async (token: string) => {
+    const result = await api.loginWithGoogle(token);
     localStorage.setItem("auth_token", result.token);
     setUser(result.user);
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const result = await authApi.register(name, email, password);
-    localStorage.setItem("auth_token", result.token);
+    const result = await api.register(name, email, password);
     setUser(result.user);
   };
 
   const logout = async () => {
-    await authApi.logout();
+    await api.logout();
+    localStorage.removeItem("auth_token");
     setUser(null);
   };
 
   const updateProfile = async (data: Partial<User>) => {
-    const updatedUser = await authApi.updateProfile(data);
+    const updatedUser = await api.updateProfile(data);
     setUser(updatedUser);
   };
 
@@ -65,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithGoogle,
         register,
         logout,
         updateProfile,
