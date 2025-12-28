@@ -14,31 +14,58 @@ const app = express();
 
 // ===== MIDDLEWARE =====
 
-// Enable CORS (allows frontend to communicate with backend)
+// Enable CORS
 app.use(cors({
-  origin: 'http://localhost:8080',  // Your frontend URL
+  origin: process.env.CLIENT_URL || 'http://localhost:8080',
   credentials: true
 }));
 
 // Parse JSON request bodies
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Parse URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+}
+
 // ===== ROUTES =====
 
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'Quizzera API is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
   });
 });
 
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
+
+// Category routes
+app.use('/api/categories', require('./routes/categories'));
+
+// Quiz routes
+app.use('/api/quizzes', require('./routes/quizzes'));
+
+// Question routes
+app.use('/api/questions', require('./routes/questions'));
+
+// Attempt routes
+app.use('/api/attempts', require('./routes/attempts'));
+
+// Resource routes (PDFs)
+app.use('/api/resources', require('./routes/resources'));
+
+// Blog routes
+app.use('/api/blogs', require('./routes/blogs'));
 
 // ===== ERROR HANDLING =====
 
@@ -46,17 +73,53 @@ app.use('/api/auth', require('./routes/auth'));
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: `Route ${req.originalUrl} not found`
   });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
-  res.status(500).json({
+  
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const messages = Object.values(err.errors).map(e => e.message);
+    return res.status(400).json({
+      success: false,
+      message: 'Validation Error',
+      errors: messages
+    });
+  }
+  
+  // Mongoose duplicate key error
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue)[0];
+    return res.status(400).json({
+      success: false,
+      message: `${field} already exists`
+    });
+  }
+  
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired'
+    });
+  }
+  
+  // Default error
+  res.status(err.statusCode || 500).json({
     success: false,
-    message: 'Server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: err.message || 'Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 
@@ -66,11 +129,23 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`
-  🚀 Quizzera API Server
-  ----------------------
-  Environment: ${process.env.NODE_ENV}
-  Port: ${PORT}
-  URL: http://localhost:${PORT}
-  ----------------------
+  ╔═══════════════════════════════════════╗
+  ║     🚀 Quizzera API Server            ║
+  ╠═══════════════════════════════════════╣
+  ║  Environment: ${process.env.NODE_ENV?.padEnd(22)}║
+  ║  Port: ${String(PORT).padEnd(30)}║
+  ║  URL: http://localhost:${PORT}           ║
+  ╚═══════════════════════════════════════╝
+  
+  📚 API Endpoints:
+  ────────────────────────────────────────
+  Auth:       /api/auth
+  Categories: /api/categories
+  Quizzes:    /api/quizzes
+  Questions:  /api/questions
+  Attempts:   /api/attempts
+  Resources:  /api/resources/pdfs
+  Blogs:      /api/blogs
+  ────────────────────────────────────────
   `);
 });
