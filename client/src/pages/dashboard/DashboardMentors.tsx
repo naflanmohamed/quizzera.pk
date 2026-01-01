@@ -44,7 +44,7 @@ const DashboardMentors = () => {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {mentors.map((mentor) => (
-          <Card key={mentor.id} className="hover:shadow-md transition-shadow">
+          <Card key={mentor._id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xl">

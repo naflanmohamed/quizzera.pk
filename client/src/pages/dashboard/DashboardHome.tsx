@@ -13,13 +13,13 @@ import {
   PlayCircle,
   ChevronRight,
 } from "lucide-react";
-import { api, Exam, QuizAttempt, Analytics } from "@/services/api";
-import { useAuth } from "@/contexts/AuthContext";
+import { api, Exam, QuizAttemptDetail, Analytics } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 const DashboardHome = () => {
   const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
-  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
+  const [attempts, setAttempts] = useState<QuizAttemptDetail[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -217,7 +217,7 @@ const DashboardHome = () => {
               ) : (
                 attempts.map((attempt) => (
                   <div
-                    key={attempt.id}
+                    key={attempt._id}
                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">

@@ -1,24 +1,234 @@
-// API Service Layer
-// Replace BASE_URL with your MongoDB Express API URL when ready
-// const BASE_URL = ""; // e.g., "https://your-api.onrender.com"
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 
-// Types
+// ============================================
+// CONFIGURATION
+// ============================================
+
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// ============================================
+// TYPES - Matching MERN Backend Models
+// ============================================
+
+// User Types
 export interface User {
-  id: string;
+  _id: string;
+  id?: string;
   name: string;
   email: string;
   avatar?: string;
   phone?: string;
-  joinedAt: string;
+  role: "user" | "admin" | "instructor";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: User;
+}
+
+// Category Types
+export interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  parent?: string | Category;
+  isActive: boolean;
+  order: number;
+  quizCount?: number;
+  subcategories?: Category[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Quiz Types
+export interface Quiz {
+  _id: string;
+  title: string;
+  slug: string;
+  description: string;
+  category: string | Category;
+  difficulty: "easy" | "medium" | "hard" | "expert";
+  duration: number;
+  totalQuestions: number;
+  passingScore: number;
+  instructions?: string[];
+  tags?: string[];
+  status: "draft" | "published" | "archived";
+  isFeatured: boolean;
+  isPremium: boolean;
+  totalAttempts: number;
+  averageScore: number;
+  createdBy: string | User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Question Types
+export interface QuestionOption {
+  text: string;
+  isCorrect?: boolean;
+}
+
+export interface Question {
+  _id: string;
+  quiz: string;
+  questionText: string;
+  questionType: "single" | "multiple" | "true_false" | "fill_blank";
+  options: { text: string; isCorrect?: boolean }[];
+  explanation?: string;
+  difficulty: "easy" | "medium" | "hard";
+  marks: number;
+  negativeMarks: number;
+  order: number;
+  tags?: string[];
+}
+
+// Quiz Attempt Types
+export interface AttemptAnswer {
+  question: string;
+  selectedOptions: number[];
+  isCorrect?: boolean;
+  marksObtained?: number;
+  timeTaken?: number;
+}
+
+export interface QuizAttempt {
+  _id: string;
+  user: string | User;
+  quiz: string | Quiz;
+  answers: AttemptAnswer[];
+  status: "in_progress" | "completed" | "abandoned";
+  startTime: string;
+  endTime?: string;
+  totalMarks?: number;
+  obtainedMarks?: number;
+  percentage?: number;
+  isPassed?: boolean;
+  timeTaken?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuizAttemptDetail {
+  _id: string;
+  quizName: string;
+  user: string;
+  status: "in_progress" | "completed" | "abandoned";
+  startedAt: string;
+  submittedAt?: string;
+  answers: AttemptAnswer[];
+  score?: number;
+  percentage?: number;
+  totalQuestions: number;
+  correctAnswers?: number;
+  incorrectAnswers?: number;
+  completedAt: string;
+  skipped?: number;
+  timeTaken?: number;
+  rank?: number;
+}
+
+// PDF Resource Types
+export interface PdfResource {
+  _id: string;
+  title: string;
+  description?: string;
+  fileUrl: string;
+  thumbnailUrl?: string;
+  category: string | Category;
+  subject?: string;
+  resourceType: "notes" | "past_paper" | "syllabus" | "formula_sheet" | "guide" | "other";
+  isPremium: boolean;
+  downloadCount: number;
+  viewCount: number;
+  uploadedBy: string | User;
+  tags?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Blog Types
+export interface Blog {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  featuredImage?: string;
+  category: string;
+  relatedExam?: string | Category;
+  tags: string[];
+  author: string | User;
+  status: "draft" | "published" | "archived";
+  publishedAt?: string;
+  viewCount: number;
+  likeCount: number;
+  readingTime: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Analytics Types
+export interface Analytics {
+  totalAttempts: number;
+  averageScore: number;
+  averageAccuracy: number;
+  totalStudyHours: number;
+  rank?: number;
+  testsCompleted: number;
+  topicPerformance: { topic: string; accuracy: number; attempts: number }[];
+  weeklyProgress: { day: string; score: number; attempts: number }[];
+  weakAreas: { topic: string; accuracy: number; recommendation: string }[];
+  recentTrend: "up" | "down" | "stable";
+}
+
+// Mentor Types
+export interface Mentor {
+  _id: string;
+  user: string | User;
+  expertise: string[];
+  supportedExams: string[];
+  experience?: string;
+  bio?: string;
+  rating: number;
+  totalSessions: number;
+  hourlyRate?: number;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  count?: number;
+  pagination?: { page: number; limit: number; total: number; pages: number };
+}
+
+export interface ApiError {
+  success: false;
+  message: string;
+  errors?: Record<string, string>;
+}
+
+// Legacy Types for backward compatibility
 export interface Exam {
   id: string;
   name: string;
   category: string;
   description: string;
   totalQuestions: number;
-  duration: number; // minutes
+  duration: number;
   progress: number;
   nextQuiz?: string;
   dueDate?: string;
@@ -27,7 +237,7 @@ export interface Exam {
   bestScore?: number;
 }
 
-export interface QuizAttempt {
+export interface QuizAttemptLegacy {
   id: string;
   examId: string;
   examName: string;
@@ -37,411 +247,356 @@ export interface QuizAttempt {
   correctAnswers: number;
   incorrectAnswers: number;
   skipped: number;
-  timeTaken: number; // seconds
+  timeTaken: number;
   completedAt: string;
   topics: string[];
 }
 
-export interface Analytics {
-  totalAttempts: number;
-  averageScore: number;
-  averageAccuracy: number;
-  totalStudyHours: number;
-  rank: number;
-  testsCompleted: number;
-  topicPerformance: {
-    topic: string;
-    accuracy: number;
-    attempts: number;
-  }[];
-  weeklyProgress: {
-    day: string;
-    score: number;
-    attempts: number;
-  }[];
-  weakAreas: {
-    topic: string;
-    accuracy: number;
-    recommendation: string;
-  }[];
-  recentTrend: "up" | "down" | "stable";
-}
+// ============================================
+// AXIOS INSTANCE WITH INTERCEPTORS
+// ============================================
 
-export interface Mentor {
-  id: string;
-  name: string;
-  avatar?: string;
-  expertise: string[];
-  experience: string;
-  bio: string;
-  rating: number;
-  totalSessions: number;
-  availability: string;
-  subjects: string[];
-}
+const apiClient: AxiosInstance = axios.create({
+  baseURL: BASE_URL,
+  timeout: 15000,
+  headers: { "Content-Type": "application/json" },
+});
 
-export interface MentorMessage {
-  id: string;
-  mentorId: string;
-  mentorName: string;
-  message: string;
-  response?: string;
-  createdAt: string;
-  status: "pending" | "answered";
-}
+// Request Interceptor - Add Auth Token
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem("auth_token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Mock Data
-const mockUser: User = {
-  id: "1",
-  name: "Ahmed Hassan",
-  email: "ahmed@example.com",
-  phone: "+92 300 1234567",
-  joinedAt: "2024-06-15",
-};
+// Response Interceptor - Handle Errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<ApiError>) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("auth_token");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    const message = error.response?.data?.message || error.message || "An error occurred";
+    return Promise.reject(new Error(message));
+  }
+);
 
-const mockExams: Exam[] = [
-  {
-    id: "1",
-    name: "MDCAT 2024",
-    category: "Medical",
-    description: "Complete MDCAT preparation with Biology, Chemistry, Physics & English",
-    totalQuestions: 200,
-    duration: 210,
-    progress: 65,
-    nextQuiz: "Biology MCQs",
-    dueDate: "Today",
-    status: "enrolled",
-    attempts: 12,
-    bestScore: 85,
-  },
-  {
-    id: "2",
-    name: "CSS General Knowledge",
-    category: "Government",
-    description: "Civil Services exam preparation - General Knowledge section",
-    totalQuestions: 100,
-    duration: 120,
-    progress: 40,
-    nextQuiz: "Pakistan Affairs",
-    dueDate: "Tomorrow",
-    status: "enrolled",
-    attempts: 8,
-    bestScore: 72,
-  },
-  {
-    id: "3",
-    name: "ECAT Engineering",
-    category: "Engineering",
-    description: "Engineering College Admission Test preparation",
-    totalQuestions: 100,
-    duration: 100,
-    progress: 25,
-    nextQuiz: "Physics Ch-5",
-    dueDate: "In 2 days",
-    status: "enrolled",
-    attempts: 5,
-    bestScore: 68,
-  },
-  {
-    id: "4",
-    name: "NTS GAT General",
-    category: "Graduate",
-    description: "Graduate Assessment Test for higher education",
-    totalQuestions: 100,
-    duration: 120,
-    progress: 0,
-    status: "not_started",
-    attempts: 0,
-  },
-  {
-    id: "5",
-    name: "PPSC Lecturer",
-    category: "Government",
-    description: "Punjab Public Service Commission Lecturer exam",
-    totalQuestions: 100,
-    duration: 90,
-    progress: 100,
-    status: "completed",
-    attempts: 15,
-    bestScore: 92,
-  },
-];
+// ============================================
+// API FUNCTIONS
+// ============================================
 
-const mockQuizAttempts: QuizAttempt[] = [
-  {
-    id: "1",
-    examId: "1",
-    examName: "MDCAT 2024",
-    quizName: "Chemistry Mock Test 3",
-    score: 85,
-    totalQuestions: 100,
-    correctAnswers: 85,
-    incorrectAnswers: 12,
-    skipped: 3,
-    timeTaken: 5400,
-    completedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    topics: ["Organic Chemistry", "Chemical Bonding"],
-  },
-  {
-    id: "2",
-    examId: "1",
-    examName: "MDCAT 2024",
-    quizName: "Biology Topic: Genetics",
-    score: 90,
-    totalQuestions: 20,
-    correctAnswers: 18,
-    incorrectAnswers: 2,
-    skipped: 0,
-    timeTaken: 1200,
-    completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    topics: ["Genetics", "Molecular Biology"],
-  },
-  {
-    id: "3",
-    examId: "3",
-    examName: "ECAT Engineering",
-    quizName: "Physics: Mechanics",
-    score: 84,
-    totalQuestions: 50,
-    correctAnswers: 42,
-    incorrectAnswers: 6,
-    skipped: 2,
-    timeTaken: 2700,
-    completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    topics: ["Mechanics", "Motion"],
-  },
-  {
-    id: "4",
-    examId: "2",
-    examName: "CSS General Knowledge",
-    quizName: "Pakistan History",
-    score: 75,
-    totalQuestions: 40,
-    correctAnswers: 30,
-    incorrectAnswers: 8,
-    skipped: 2,
-    timeTaken: 2400,
-    completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    topics: ["History", "Pakistan Studies"],
-  },
-  {
-    id: "5",
-    examId: "1",
-    examName: "MDCAT 2024",
-    quizName: "English Vocabulary",
-    score: 92,
-    totalQuestions: 25,
-    correctAnswers: 23,
-    incorrectAnswers: 2,
-    skipped: 0,
-    timeTaken: 900,
-    completedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    topics: ["Vocabulary", "Grammar"],
-  },
-];
-
-const mockAnalytics: Analytics = {
-  totalAttempts: 47,
-  averageScore: 78,
-  averageAccuracy: 76,
-  totalStudyHours: 124,
-  rank: 156,
-  testsCompleted: 47,
-  topicPerformance: [
-    { topic: "Biology", accuracy: 82, attempts: 15 },
-    { topic: "Chemistry", accuracy: 75, attempts: 12 },
-    { topic: "Physics", accuracy: 68, attempts: 10 },
-    { topic: "English", accuracy: 88, attempts: 5 },
-    { topic: "Pakistan Studies", accuracy: 72, attempts: 5 },
-  ],
-  weeklyProgress: [
-    { day: "Mon", score: 72, attempts: 3 },
-    { day: "Tue", score: 78, attempts: 4 },
-    { day: "Wed", score: 75, attempts: 2 },
-    { day: "Thu", score: 82, attempts: 5 },
-    { day: "Fri", score: 80, attempts: 3 },
-    { day: "Sat", score: 85, attempts: 6 },
-    { day: "Sun", score: 79, attempts: 2 },
-  ],
-  weakAreas: [
-    { topic: "Physics - Thermodynamics", accuracy: 45, recommendation: "Review Chapter 8-10, practice more MCQs" },
-    { topic: "Chemistry - Electrochemistry", accuracy: 52, recommendation: "Focus on electrode potentials and cells" },
-    { topic: "Biology - Plant Physiology", accuracy: 58, recommendation: "Revise photosynthesis and respiration" },
-  ],
-  recentTrend: "up",
-};
-
-const mockMentors: Mentor[] = [
-  {
-    id: "1",
-    name: "Dr. Sarah Khan",
-    expertise: ["MDCAT", "Biology", "Chemistry"],
-    experience: "15 years teaching",
-    bio: "Former MBBS examiner with extensive experience in medical entrance test preparation.",
-    rating: 4.9,
-    totalSessions: 500,
-    availability: "Mon-Fri, 9AM-5PM",
-    subjects: ["Biology", "Chemistry"],
-  },
-  {
-    id: "2",
-    name: "Prof. Ali Ahmed",
-    expertise: ["ECAT", "Physics", "Mathematics"],
-    experience: "12 years teaching",
-    bio: "PhD in Physics, specialized in engineering entrance exam preparation.",
-    rating: 4.8,
-    totalSessions: 420,
-    availability: "Mon-Sat, 10AM-6PM",
-    subjects: ["Physics", "Mathematics"],
-  },
-  {
-    id: "3",
-    name: "Ms. Fatima Zahra",
-    expertise: ["CSS", "English", "General Knowledge"],
-    experience: "10 years teaching",
-    bio: "CSS qualified officer with expertise in English and Current Affairs.",
-    rating: 4.7,
-    totalSessions: 350,
-    availability: "Tue-Sat, 11AM-7PM",
-    subjects: ["English", "Current Affairs"],
-  },
-];
-
-const mockMentorMessages: MentorMessage[] = [
-  {
-    id: "1",
-    mentorId: "1",
-    mentorName: "Dr. Sarah Khan",
-    message: "I'm struggling with organic chemistry reactions. Can you help?",
-    response: "Of course! Let's start with the basics. Focus on reaction mechanisms first.",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "answered",
-  },
-  {
-    id: "2",
-    mentorId: "2",
-    mentorName: "Prof. Ali Ahmed",
-    message: "How should I approach physics numericals for ECAT?",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "pending",
-  },
-];
-
-// Simulate API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// API Functions - Replace these with real API calls when ready
 export const api = {
-  // Auth
-  async login(email: string, password: string) {
-    await delay(800);
-    if (email && password) {
-      return { success: true, user: mockUser, token: "mock-jwt-token" };
-    }
-    throw new Error("Invalid credentials");
+  // ==========================================
+  // AUTHENTICATION
+  // ==========================================
+  
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/login", { email, password });
+    return response.data;
   },
 
-  async loginWithGoogle(_token: string) {
-    await delay(800);
-    return { success: true, user: mockUser, token: "mock-jwt-token" };
+  async loginWithGoogle(token: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/google", { token });
+    return response.data;
   },
 
-  async register(name: string, email: string, _password: string) {
-    await delay(800);
-    return { success: true, user: { ...mockUser, name, email } };
+  async register(name: string, email: string, password: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/register", { name, email, password });
+    return response.data;
   },
 
-  async logout() {
-    await delay(300);
+  async logout(): Promise<void> {
+    localStorage.removeItem("auth_token");
+  },
+
+  async getProfile(): Promise<User> {
+    const response = await apiClient.get<ApiResponse<User>>("/auth/me");
+    return response.data.data!;
+  },
+
+  async updateProfile(data: Partial<User>): Promise<User> {
+    const response = await apiClient.put<ApiResponse<User>>("/auth/updatedetails", data);
+    return response.data.data!;
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiClient.put("/auth/updatepassword", { currentPassword, newPassword });
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post("/auth/forgotpassword", { email });
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await apiClient.put(`/auth/resetpassword/${token}`, { password });
+  },
+
+  // ==========================================
+  // CATEGORIES
+  // ==========================================
+  
+  async getCategories(): Promise<Category[]> {
+    const response = await apiClient.get<ApiResponse<Category[]>>("/categories");
+    return response.data.data || [];
+  },
+
+  async getCategoryById(id: string): Promise<Category> {
+    const response = await apiClient.get<ApiResponse<Category>>(`/categories/${id}`);
+    return response.data.data!;
+  },
+
+  async getCategoryBySlug(slug: string): Promise<Category> {
+    const response = await apiClient.get<ApiResponse<Category>>(`/categories/slug/${slug}`);
+    return response.data.data!;
+  },
+
+  // ==========================================
+  // QUIZZES
+  // ==========================================
+  
+  async getQuizzes(filters?: {
+    category?: string;
+    difficulty?: string;
+    search?: string;
+    isPublished?: boolean;
+  }): Promise<Quiz[]> {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append("category", filters.category);
+    if (filters?.difficulty) params.append("difficulty", filters.difficulty);
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.isPublished !== undefined) params.append("isPublished", String(filters.isPublished));
+
+    const response = await apiClient.get<ApiResponse<Quiz[]>>(`/quizzes?${params.toString()}`);
+    return response.data.data || [];
+  },
+
+  async getQuizById(id: string): Promise<Quiz> {
+    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/${id}`);
+    return response.data.data!;
+  },
+
+  async getQuizBySlug(slug: string): Promise<Quiz> {
+    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/slug/${slug}`);
+    return response.data.data!;
+  },
+
+  async getFeaturedQuizzes(limit: number = 5): Promise<Quiz[]> {
+    const response = await apiClient.get<ApiResponse<Quiz[]>>("/quizzes/featured", { params: { limit } });
+    return response.data.data || [];
+  },
+
+  async getPopularQuizzes(limit: number = 5): Promise<Quiz[]> {
+    const response = await apiClient.get<ApiResponse<Quiz[]>>("/quizzes/popular", { params: { limit } });
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // QUESTIONS
+  // ==========================================
+  
+  async getQuizQuestions(quizId: string): Promise<Question[]> {
+    const response = await apiClient.get<ApiResponse<Question[]>>(`/quizzes/${quizId}/questions`);
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // QUIZ ATTEMPTS
+  // ==========================================
+  
+  async startQuizAttempt(quizId: string): Promise<{ attempt: QuizAttemptDetail; questions: Question[] }> {
+    const response = await apiClient.post<ApiResponse<{ attempt: QuizAttemptDetail; questions: Question[] }>>("/attempts/start", { quizId });
+    return response.data.data!;
+  },
+
+  async saveAnswer(attemptId: string, questionId: string, selectedOption: number): Promise<{ success: boolean }> {
+    const response = await apiClient.post<{ success: boolean }>(`/attempts/${attemptId}/answer`, { questionId, selectedOption });
+    return response.data;
+  },
+
+  async submitQuizAttempt(attemptId: string): Promise<QuizAttemptDetail> {
+    const response = await apiClient.post<ApiResponse<QuizAttemptDetail>>(`/attempts/${attemptId}/submit`);
+    return response.data.data!;
+  },
+
+  async getAttemptResults(attemptId: string): Promise<QuizAttemptDetail & { questions: (Question & { userAnswer?: number })[] }> {
+    const response = await apiClient.get<ApiResponse<QuizAttemptDetail & { questions: (Question & { userAnswer?: number })[] }>>(`/attempts/${attemptId}/results`);
+    return response.data.data!;
+  },
+
+  async getMyAttempts(filters?: { quizId?: string; status?: string }): Promise<QuizAttemptDetail[]> {
+    const params = new URLSearchParams();
+    if (filters?.quizId) params.append("quizId", filters.quizId);
+    if (filters?.status) params.append("status", filters.status);
+
+    const response = await apiClient.get<ApiResponse<QuizAttemptDetail[]>>(`/attempts/my-attempts?${params.toString()}`);
+    return response.data.data || [];
+  },
+
+  async getAttemptById(id: string): Promise<QuizAttempt> {
+    const response = await apiClient.get<ApiResponse<QuizAttempt>>(`/attempts/${id}`);
+    return response.data.data!;
+  },
+
+  async getLeaderboard(quizId: string, limit: number = 10): Promise<{ user: User; score: number; timeTaken: number }[]> {
+    const response = await apiClient.get<ApiResponse<{ user: User; score: number; timeTaken: number }[]>>(`/attempts/leaderboard/${quizId}`, { params: { limit } });
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // PDF RESOURCES
+  // ==========================================
+  
+  async getPdfs(params?: {
+    category?: string;
+    resourceType?: string;
+    premium?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ pdfs: PdfResource[]; pagination?: ApiResponse<PdfResource[]>["pagination"] }> {
+    const response = await apiClient.get<ApiResponse<PdfResource[]>>("/resources/pdfs", { params });
+    return { pdfs: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async getPdfById(id: string): Promise<PdfResource> {
+    const response = await apiClient.get<ApiResponse<PdfResource>>(`/resources/pdfs/${id}`);
+    return response.data.data!;
+  },
+
+  async downloadPdf(id: string): Promise<string> {
+    const response = await apiClient.get<ApiResponse<{ downloadUrl: string }>>(`/resources/pdfs/${id}/download`);
+    return response.data.data!.downloadUrl;
+  },
+
+  async getResourceTypes(): Promise<string[]> {
+    const response = await apiClient.get<ApiResponse<string[]>>("/resources/pdfs/types");
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // BLOGS
+  // ==========================================
+  
+  async getBlogs(params?: {
+    category?: string;
+    tag?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ blogs: Blog[]; pagination?: ApiResponse<Blog[]>["pagination"] }> {
+    const response = await apiClient.get<ApiResponse<Blog[]>>("/blogs", { params });
+    return { blogs: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async getBlogBySlug(slug: string): Promise<Blog> {
+    const response = await apiClient.get<ApiResponse<Blog>>(`/blogs/slug/${slug}`);
+    return response.data.data!;
+  },
+
+  async getBlogById(id: string): Promise<Blog> {
+    const response = await apiClient.get<ApiResponse<Blog>>(`/blogs/${id}`);
+    return response.data.data!;
+  },
+
+  async getFeaturedBlogs(limit: number = 5): Promise<Blog[]> {
+    const response = await apiClient.get<ApiResponse<Blog[]>>("/blogs/featured", { params: { limit } });
+    return response.data.data || [];
+  },
+
+  async getTrendingBlogs(limit: number = 5): Promise<Blog[]> {
+    const response = await apiClient.get<ApiResponse<Blog[]>>("/blogs/trending", { params: { limit } });
+    return response.data.data || [];
+  },
+
+  async likeBlog(id: string): Promise<Blog> {
+    const response = await apiClient.post<ApiResponse<Blog>>(`/blogs/${id}/like`);
+    return response.data.data!;
+  },
+
+  async getBlogTags(): Promise<string[]> {
+    const response = await apiClient.get<ApiResponse<string[]>>("/blogs/tags");
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // ANALYTICS
+  // ==========================================
+  
+  async getAnalytics(): Promise<Analytics> {
+    const response = await apiClient.get<ApiResponse<Analytics>>("/analytics");
+    return response.data.data!;
+  },
+
+  async getTopicPerformance(): Promise<Analytics["topicPerformance"]> {
+    const response = await apiClient.get<ApiResponse<Analytics["topicPerformance"]>>("/analytics/topics");
+    return response.data.data || [];
+  },
+
+  async getWeeklyProgress(): Promise<Analytics["weeklyProgress"]> {
+    const response = await apiClient.get<ApiResponse<Analytics["weeklyProgress"]>>("/analytics/weekly");
+    return response.data.data || [];
+  },
+
+  // ==========================================
+  // MENTORS
+  // ==========================================
+  
+  async getMentors(params?: {
+    expertise?: string;
+    available?: boolean;
+    page?: number;
+    limit?: number;
+  }): Promise<{ mentors: Mentor[]; pagination?: ApiResponse<Mentor[]>["pagination"] }> {
+    const response = await apiClient.get<ApiResponse<Mentor[]>>("/mentors", { params });
+    return { mentors: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async getMentorById(id: string): Promise<Mentor> {
+    const response = await apiClient.get<ApiResponse<Mentor>>(`/mentors/${id}`);
+    return response.data.data!;
+  },
+
+  // ==========================================
+  // LEGACY SUPPORT (for existing components)
+  // ==========================================
+  
+  async getExams(filters?: { status?: string; category?: string }): Promise<Quiz[]> {
+    const quizzes = await this.getQuizzes({
+      category: filters?.category,
+    });
+    return quizzes;
+  },
+
+  async getExamById(id: string): Promise<Quiz> {
+    return this.getQuizById(id);
+  },
+
+  async enrollInExam(_examId: string): Promise<{ success: boolean }> {
     return { success: true };
   },
 
-  // User
-  async getProfile() {
-    await delay(500);
-    return mockUser;
-  },
-
-  async updateProfile(data: Partial<User>) {
-    await delay(600);
-    return { ...mockUser, ...data };
-  },
-
-  async changePassword(_currentPassword: string, _newPassword: string) {
-    await delay(500);
-    return { success: true };
-  },
-
-  // Exams
-  async getExams(filters?: { status?: string; category?: string }) {
-    await delay(600);
-    let exams = [...mockExams];
-    if (filters?.status) {
-      exams = exams.filter((e) => e.status === filters.status);
-    }
-    if (filters?.category) {
-      exams = exams.filter((e) => e.category === filters.category);
-    }
-    return exams;
-  },
-
-  async getExamById(id: string) {
-    await delay(400);
-    return mockExams.find((e) => e.id === id);
-  },
-
-  async enrollInExam(_examId: string) {
-    await delay(500);
-    return { success: true };
-  },
-
-  // Quizzes
-  async getQuizAttempts(filters?: { examId?: string; dateFrom?: string; dateTo?: string; minScore?: number }) {
-    await delay(600);
-    let attempts = [...mockQuizAttempts];
-    if (filters?.examId) {
-      attempts = attempts.filter((a) => a.examId === filters.examId);
-    }
-    if (filters?.minScore !== undefined) {
-      attempts = attempts.filter((a) => a.score >= filters.minScore!);
-    }
+  async getQuizAttempts(filters?: { examId?: string; minScore?: number }): Promise<QuizAttemptDetail[]> {
+    const attempts = await this.getMyAttempts({ quizId: filters?.examId });
     return attempts;
   },
 
-  async getQuizAttemptById(id: string) {
-    await delay(400);
-    return mockQuizAttempts.find((a) => a.id === id);
-  },
-
-  // Analytics
-  async getAnalytics() {
-    await delay(700);
-    return mockAnalytics;
-  },
-
-  // Mentors
-  async getMentors(filters?: { subject?: string }) {
-    await delay(500);
-    let mentors = [...mockMentors];
-    if (filters?.subject) {
-      mentors = mentors.filter((m) => 
-        m.subjects.some((s) => s.toLowerCase().includes(filters.subject!.toLowerCase()))
-      );
-    }
-    return mentors;
-  },
-
-  async getMentorById(id: string) {
-    await delay(400);
-    return mockMentors.find((m) => m.id === id);
+  async getQuizAttemptById(id: string): Promise<QuizAttempt> {
+    return this.getAttemptById(id);
   },
 
   async sendMentorMessage(mentorId: string, message: string) {
-    await delay(600);
     return {
       id: Date.now().toString(),
       mentorId,
-      mentorName: mockMentors.find((m) => m.id === mentorId)?.name || "",
       message,
       createdAt: new Date().toISOString(),
       status: "pending" as const,
@@ -449,7 +604,9 @@ export const api = {
   },
 
   async getMentorMessages() {
-    await delay(500);
-    return mockMentorMessages;
+    return [];
   },
 };
+
+export { apiClient };
+export default api;

@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, BookOpen, ChevronDown } from "lucide-react";
+import { Menu, X, BookOpen } from "lucide-react";
 
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Exams", href: "/exams" },
   { name: "Quizzes", href: "/quizzes" },
   { name: "Mentors", href: "/mentors" },
+  { name: "Resources", href: "/resources" },
+  { name: "Blog", href: "/blog" },
   { name: "Dashboard", href: "/dashboard" },
+
+
 ];
 
 export function Navbar() {

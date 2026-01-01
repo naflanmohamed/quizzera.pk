@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -15,109 +16,7 @@ import {
   Target,
 } from "lucide-react";
 import { useState } from "react";
-
-const quizzes = [
-  {
-    id: 1,
-    title: "Biology Quick Quiz",
-    category: "MDCAT",
-    questions: 20,
-    duration: "15 min",
-    difficulty: "Medium",
-    attempts: 1250,
-    icon: "🧬",
-  },
-  {
-    id: 2,
-    title: "Mathematics Fundamentals",
-    category: "ECAT",
-    questions: 25,
-    duration: "20 min",
-    difficulty: "Easy",
-    attempts: 980,
-    icon: "📐",
-  },
-  {
-    id: 3,
-    title: "English Grammar Test",
-    category: "CSS",
-    questions: 30,
-    duration: "25 min",
-    difficulty: "Medium",
-    attempts: 2100,
-    icon: "📝",
-  },
-  {
-    id: 4,
-    title: "Physics Mechanics",
-    category: "Entry Tests",
-    questions: 20,
-    duration: "18 min",
-    difficulty: "Hard",
-    attempts: 750,
-    icon: "⚡",
-  },
-  {
-    id: 5,
-    title: "General Knowledge",
-    category: "NTS",
-    questions: 40,
-    duration: "30 min",
-    difficulty: "Medium",
-    attempts: 3200,
-    icon: "🌍",
-  },
-  {
-    id: 6,
-    title: "Chemistry Organic",
-    category: "MDCAT",
-    questions: 25,
-    duration: "20 min",
-    difficulty: "Hard",
-    attempts: 890,
-    icon: "🧪",
-  },
-  {
-    id: 7,
-    title: "Current Affairs 2024",
-    category: "Government",
-    questions: 35,
-    duration: "25 min",
-    difficulty: "Medium",
-    attempts: 1650,
-    icon: "📰",
-  },
-  {
-    id: 8,
-    title: "Logical Reasoning",
-    category: "GAT",
-    questions: 30,
-    duration: "35 min",
-    difficulty: "Hard",
-    attempts: 1100,
-    icon: "🧠",
-  },
-  {
-    id: 9,
-    title: "Computer Science Basics",
-    category: "Academic",
-    questions: 25,
-    duration: "20 min",
-    difficulty: "Easy",
-    attempts: 2400,
-    icon: "💻",
-  },
-];
-
-const categories = [
-  "All",
-  "MDCAT",
-  "ECAT",
-  "CSS",
-  "NTS",
-  "GAT",
-  "Academic",
-];
+import { useQuizzes, useCategories } from "@/hooks/useQuiz";
 
 const difficultyColors: Record<string, string> = {
   Easy: "bg-success/10 text-success border-success/20",
@@ -127,16 +26,22 @@ const difficultyColors: Record<string, string> = {
 
 const Quizzes = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
-  const filteredQuizzes = quizzes.filter((quiz) => {
-    const matchesSearch =
-      quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quiz.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || quiz.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  // Fetch categories from API
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+
+  // Fetch quizzes with filters
+  const { data: quizzes = [], isLoading: quizzesLoading, error } = useQuizzes({
+    category: selectedCategory !== "All" ? selectedCategory : undefined,
+    difficulty: selectedDifficulty !== "All" ? selectedDifficulty : undefined,
+    search: searchQuery || undefined,
+    isPublished: true,
   });
+
+  const categoryOptions = ["All", ...categories.map((c) => c.name)];
+  const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,11 +66,19 @@ const Quizzes = () => {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8 max-w-xl mx-auto">
             <div className="text-center p-4 rounded-xl bg-card border border-border">
-              <div className="text-2xl font-bold text-primary">500+</div>
+              <div className="text-2xl font-bold text-primary">
+                {quizzesLoading ? <Skeleton className="h-8 w-12 mx-auto" /> : quizzes.length}+
+              </div>
               <div className="text-xs text-muted-foreground">Quizzes</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-card border border-border">
-              <div className="text-2xl font-bold text-accent">25K+</div>
+              <div className="text-2xl font-bold text-accent">
+                {quizzesLoading ? (
+                  <Skeleton className="h-8 w-12 mx-auto" />
+                ) : (
+                  `${quizzes.reduce((acc, q) => acc + (q.totalQuestions || 0), 0)}+`
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">Questions</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-card border border-border">
@@ -175,8 +88,9 @@ const Quizzes = () => {
           </div>
 
           {/* Search & Filter */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-4 mb-8">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md mx-auto w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Search quizzes..."
@@ -185,82 +99,152 @@ const Quizzes = () => {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
-              {categories.map((category) => (
+
+            {/* Category Filter */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {categoriesLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-20" />
+                ))
+              ) : (
+                categoryOptions.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className="whitespace-nowrap"
+                  >
+                    {category}
+                  </Button>
+                ))
+              )}
+            </div>
+
+            {/* Difficulty Filter */}
+            <div className="flex justify-center gap-2">
+              {difficultyOptions.map((difficulty) => (
                 <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
+                  key={difficulty}
+                  variant={selectedDifficulty === difficulty ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className="whitespace-nowrap"
+                  onClick={() => setSelectedDifficulty(difficulty)}
+                  className={
+                    selectedDifficulty === difficulty
+                      ? ""
+                      : difficulty !== "All"
+                      ? difficultyColors[difficulty]
+                      : ""
+                  }
                 >
-                  {category}
+                  {difficulty}
                 </Button>
               ))}
             </div>
           </div>
 
+          {/* Loading State */}
+          {quizzesLoading && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                    <Skeleton className="h-6 w-3/4 mb-3" />
+                    <div className="flex gap-3 mb-4">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <Target className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Failed to load quizzes</h3>
+              <p className="text-muted-foreground">Please try again later</p>
+            </div>
+          )}
+
           {/* Quizzes Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredQuizzes.map((quiz) => (
-              <Card
-                key={quiz.id}
-                className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 overflow-hidden"
-              >
-                <CardContent className="p-6">
-                  {/* Icon & Category */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
-                      {quiz.icon}
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {quiz.category}
-                    </Badge>
-                  </div>
+          {!quizzesLoading && !error && quizzes.length > 0 && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {quizzes.map((quiz) => {
+                const categoryName =
+                  typeof quiz.category === "object" ? quiz.category.name : quiz.category;
 
-                  {/* Title */}
-                  <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                    {quiz.title}
-                  </h3>
+                return (
+                  <Card
+                    key={quiz._id}
+                    className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 overflow-hidden"
+                  >
+                    <CardContent className="p-6">
+                      {/* Icon & Category */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+                          {quiz.tags?.[0]?.charAt(0) || "Q"}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {categoryName}
+                        </Badge>
+                      </div>
 
-                  {/* Meta */}
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <FileQuestion className="w-4 h-4" />
-                      <span>{quiz.questions} Qs</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      <span>{quiz.duration}</span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${difficultyColors[quiz.difficulty]}`}
-                    >
-                      {quiz.difficulty}
-                    </Badge>
-                  </div>
+                      {/* Title */}
+                      <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                        {quiz.title}
+                      </h3>
 
-                  {/* Attempts */}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
-                    <TrendingUp className="w-3 h-3" />
-                    <span>{quiz.attempts.toLocaleString()} attempts</span>
-                  </div>
+                      {/* Meta */}
+                      <div className="flex flex-wrap gap-3 mb-4">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <FileQuestion className="w-4 h-4" />
+                          <span>{quiz.totalQuestions} Qs</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{quiz.duration} min</span>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${difficultyColors[quiz.difficulty]}`}
+                        >
+                          {quiz.difficulty}
+                        </Badge>
+                      </div>
 
-                  {/* Action */}
-                  <Button variant="gradient" className="w-full" asChild>
-                    <Link to={`/quiz/${quiz.id}`}>
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Quiz
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      {/* Attempts */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>{(quiz.totalAttempts || 0).toLocaleString()} attempts</span>
+                      </div>
+
+                      {/* Action */}
+                      <Button variant="gradient" className="w-full" asChild>
+                        <Link to={`/quiz/${quiz._id}`}>
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Quiz
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredQuizzes.length === 0 && (
+          {!quizzesLoading && !error && quizzes.length === 0 && (
             <div className="text-center py-16">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <Target className="w-8 h-8 text-muted-foreground" />

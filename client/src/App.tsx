@@ -3,15 +3,20 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthProvider";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Exams from "./pages/Exams";
 import Quizzes from "./pages/Quizzes";
-import Mentors from "./pages/Mentors";
+import QuizDetail from "./pages/QuizDetail";
 import Quiz from "./pages/Quiz";
+import QuizResults from "./pages/QuizResults";
+import Mentors from "./pages/Mentors";
 import NotFound from "./pages/NotFound";
+import Resources from "./pages/Resources";
+import Blog from "./pages/Blog";
+import BlogDetail from "./pages/BlogDetail";
 
 // Dashboard pages
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -38,7 +43,15 @@ const App = () => (
             <Route path="/exams" element={<Exams />} />
             <Route path="/exams/:id" element={<Quiz />} />
             <Route path="/quizzes" element={<Quizzes />} />
-            <Route path="/quiz/:id" element={<Quiz />} />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogDetail />} />
+            
+            {/* Quiz Routes */}
+            <Route path="/quiz/:id" element={<QuizDetail />} />
+            <Route path="/quiz/:id/attempt/:attemptId" element={<Quiz />} />
+            <Route path="/quiz/:id/results/:attemptId" element={<QuizResults />} />
+            
             <Route path="/mentors" element={<Mentors />} />
             
             {/* Dashboard routes with shared layout */}
@@ -51,13 +64,11 @@ const App = () => (
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             
-            {/* Legacy routes - redirect to new dashboard paths */}
+            {/* Legacy routes */}
             <Route path="/my-exams" element={<MyExams />} />
             <Route path="/attempts" element={<MyQuizzes />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/settings" element={<SettingsPage />} />     
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

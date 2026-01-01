@@ -1,9 +1,20 @@
-import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useQuiz, useQuizQuestions, useSaveAnswer, useSubmitAttempt } from "@/hooks/useQuiz";
 import { 
   Clock, 
   ChevronLeft, 
@@ -12,88 +23,57 @@ import {
   Send,
   BookOpen,
   AlertCircle,
-  CheckCircle2,
-  XCircle
+  Loader2,
 } from "lucide-react";
 
-const mockQuestions = [
-  {
-    id: 1,
-    question: "Which organelle is known as the 'powerhouse of the cell'?",
-    options: [
-      "Nucleus",
-      "Mitochondria",
-      "Ribosome",
-      "Endoplasmic Reticulum"
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: 2,
-    question: "What is the chemical formula for water?",
-    options: [
-      "H2O2",
-      "CO2",
-      "H2O",
-      "NaCl"
-    ],
-    correctAnswer: 2,
-  },
-  {
-    id: 3,
-    question: "Which planet is known as the Red Planet?",
-    options: [
-      "Venus",
-      "Jupiter",
-      "Mars",
-      "Saturn"
-    ],
-    correctAnswer: 2,
-  },
-  {
-    id: 4,
-    question: "What is the largest organ in the human body?",
-    options: [
-      "Heart",
-      "Liver",
-      "Brain",
-      "Skin"
-    ],
-    correctAnswer: 3,
-  },
-  {
-    id: 5,
-    question: "Which gas is most abundant in Earth's atmosphere?",
-    options: [
-      "Oxygen",
-      "Carbon Dioxide",
-      "Nitrogen",
-      "Hydrogen"
-    ],
-    correctAnswer: 2,
-  },
-];
-
 const Quiz = () => {
-  const { id } = useParams();
+  const { id, attemptId } = useParams<{ id: string; attemptId: string }>();
+  const navigate = useNavigate();
+  
+  // State
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [markedForReview, setMarkedForReview] = useState<Set<number>>(new Set());
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
-  const [quizEnded, setQuizEnded] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timerInitializedId, setTimerInitializedId] = useState<string | null>(null);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
-  const totalQuestions = mockQuestions.length;
+  // API Hooks
+  const { data: quiz, isLoading: quizLoading } = useQuiz(id || "");
+  const { data: questions, isLoading: questionsLoading } = useQuizQuestions(id || "", attemptId);
+  const saveAnswer = useSaveAnswer();
+  const submitAttempt = useSubmitAttempt();
+
+  const isLoading = quizLoading || questionsLoading;
+  const totalQuestions = questions?.length || 0;
   const answeredCount = Object.keys(selectedAnswers).length;
   const markedCount = markedForReview.size;
 
-  // Timer
-  useEffect(() => {
-    if (quizEnded) return;
+  // Initialize timer when quiz loads
+  if (quiz?.duration && id && timerInitializedId !== id) {
+    setTimerInitializedId(id);
+    setTimeLeft(quiz.duration * 60); // Convert minutes to seconds
+  }
+
+  const handleAutoSubmit = useCallback(async () => {
+    if (!attemptId) return;
     
+    try {
+      await submitAttempt.mutateAsync(attemptId);
+      navigate(`/quiz/${id}/results/${attemptId}`);
+    } catch (error) {
+      console.error("Auto-submit failed:", error);
+    }
+  }, [attemptId, id, navigate, submitAttempt]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) return;
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
+        if (prev === null) return null;
         if (prev <= 1) {
-          setQuizEnded(true);
           return 0;
         }
         return prev - 1;
@@ -101,19 +81,41 @@ const Quiz = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [quizEnded]);
+  }, [timeLeft]);
+
+  // Handle auto-submit when time runs out
+  useEffect(() => {
+    if (timeLeft === 0) {
+      handleAutoSubmit();
+    }
+  }, [timeLeft, handleAutoSubmit]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleSelectAnswer = (optionIndex: number) => {
+  const handleSelectAnswer = async (optionIndex: number) => {
+    if (!questions || !attemptId) return;
+    
+    const question = questions[currentQuestion];
+    
     setSelectedAnswers((prev) => ({
       ...prev,
-      [currentQuestion]: optionIndex,
+      [question._id]: optionIndex,
     }));
+
+    // Save to backend
+    try {
+      await saveAnswer.mutateAsync({
+        attemptId,
+        questionId: question._id,
+        selectedOption: optionIndex,
+      });
+    } catch (error) {
+      console.error("Failed to save answer:", error);
+    }
   };
 
   const handleMarkForReview = () => {
@@ -128,73 +130,54 @@ const Quiz = () => {
     });
   };
 
-  const handleSubmit = () => {
-    setQuizEnded(true);
+
+
+  const handleSubmit = async () => {
+    setShowSubmitDialog(false);
+    
+    if (!attemptId) return;
+    
+    try {
+      await submitAttempt.mutateAsync(attemptId);
+      navigate(`/quiz/${id}/results/${attemptId}`);
+    } catch (error) {
+      console.error("Submit failed:", error);
+    }
   };
 
-  const calculateScore = () => {
-    let correct = 0;
-    mockQuestions.forEach((q, index) => {
-      if (selectedAnswers[index] === q.correctAnswer) {
-        correct++;
-      }
-    });
-    return correct;
-  };
-
-  if (quizEnded) {
-    const score = calculateScore();
-    const percentage = Math.round((score / totalQuestions) * 100);
-
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-lg w-full">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (!quiz || !questions || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4">
           <CardContent className="p-8 text-center">
-            <div className={`w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center ${
-              percentage >= 70 ? 'bg-success/10' : percentage >= 50 ? 'bg-warning/10' : 'bg-destructive/10'
-            }`}>
-              {percentage >= 70 ? (
-                <CheckCircle2 className={`w-12 h-12 text-success`} />
-              ) : percentage >= 50 ? (
-                <AlertCircle className={`w-12 h-12 text-warning`} />
-              ) : (
-                <XCircle className={`w-12 h-12 text-destructive`} />
-              )}
-            </div>
-
-            <h1 className="text-3xl font-bold text-foreground mb-2">Quiz Completed!</h1>
-            <p className="text-muted-foreground mb-8">Here's how you performed</p>
-
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="p-4 rounded-xl bg-muted">
-                <p className="text-2xl font-bold text-foreground">{score}/{totalQuestions}</p>
-                <p className="text-sm text-muted-foreground">Correct</p>
-              </div>
-              <div className="p-4 rounded-xl bg-muted">
-                <p className="text-2xl font-bold text-foreground">{percentage}%</p>
-                <p className="text-sm text-muted-foreground">Score</p>
-              </div>
-              <div className="p-4 rounded-xl bg-muted">
-                <p className="text-2xl font-bold text-foreground">{formatTime(30 * 60 - timeLeft)}</p>
-                <p className="text-sm text-muted-foreground">Time Taken</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex-1" asChild>
-                <Link to="/dashboard">Back to Dashboard</Link>
-              </Button>
-              <Button variant="gradient" className="flex-1" asChild>
-                <Link to="/exams">Try Another</Link>
-              </Button>
-            </div>
+            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Quiz Not Available</h1>
+            <p className="text-muted-foreground mb-6">
+              Unable to load quiz questions. Please try again.
+            </p>
+            <Button asChild>
+              <Link to="/quizzes">Back to Quizzes</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const question = mockQuestions[currentQuestion];
+  const question = questions[currentQuestion];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -203,23 +186,41 @@ const Quiz = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <BookOpen className="w-5 h-5" />
-                <span className="hidden sm:inline font-medium">MDCAT Practice</span>
-              </Link>
+                <span className="hidden sm:inline font-medium truncate max-w-[200px]">
+                  {quiz.title}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                timeLeft < 300 ? 'bg-destructive/10 text-destructive' : 'bg-muted'
-              }`}>
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                  timeLeft !== null && timeLeft < 300
+                    ? "bg-destructive/10 text-destructive animate-pulse"
+                    : "bg-muted"
+                }`}
+              >
                 <Clock className="w-4 h-4" />
-                <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
+                <span className="font-mono font-bold">
+                  {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
+                </span>
               </div>
 
-              <Button variant="gradient" onClick={handleSubmit}>
-                <Send className="w-4 h-4 mr-2" />
-                Submit
+              <Button
+                variant="gradient"
+                onClick={() => setShowSubmitDialog(true)}
+                disabled={submitAttempt.isPending}
+              >
+                {submitAttempt.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Submit</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -260,7 +261,7 @@ const Quiz = () => {
                 </div>
 
                 <h2 className="text-xl font-semibold text-foreground mb-8">
-                  {question.question}
+                  {question.questionText}
                 </h2>
 
                 <div className="space-y-3">
@@ -268,21 +269,24 @@ const Quiz = () => {
                     <button
                       key={index}
                       onClick={() => handleSelectAnswer(index)}
+                      disabled={saveAnswer.isPending}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                        selectedAnswers[currentQuestion] === index
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                      }`}
+                        selectedAnswers[question._id] === index
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      } ${saveAnswer.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       <div className="flex items-center gap-4">
-                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm ${
-                          selectedAnswers[currentQuestion] === index
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
+                        <span
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm ${
+                            selectedAnswers[question._id] === index
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
                           {String.fromCharCode(65 + index)}
                         </span>
-                        <span className="text-foreground">{option}</span>
+                        <span className="text-foreground">{option.text}</span>
                       </div>
                     </button>
                   ))}
@@ -300,7 +304,9 @@ const Quiz = () => {
                   </Button>
                   <Button
                     variant="default"
-                    onClick={() => setCurrentQuestion((prev) => Math.min(totalQuestions - 1, prev + 1))}
+                    onClick={() =>
+                      setCurrentQuestion((prev) => Math.min(totalQuestions - 1, prev + 1))
+                    }
                     disabled={currentQuestion === totalQuestions - 1}
                   >
                     Next
@@ -313,21 +319,21 @@ const Quiz = () => {
 
           {/* Question Navigator */}
           <div className="lg:col-span-1">
-            <Card>
+            <Card className="sticky top-24">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-foreground mb-4">Question Navigator</h3>
-                
+
                 <div className="grid grid-cols-5 gap-2 mb-6">
-                  {mockQuestions.map((_, index) => (
+                  {questions.map((q, index) => (
                     <button
-                      key={index}
+                      key={q._id}
                       onClick={() => setCurrentQuestion(index)}
                       className={`w-10 h-10 rounded-lg font-semibold text-sm transition-colors relative ${
                         currentQuestion === index
-                          ? 'bg-primary text-primary-foreground'
-                          : selectedAnswers[index] !== undefined
-                          ? 'bg-success/10 text-success border border-success/30'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          ? "bg-primary text-primary-foreground"
+                          : selectedAnswers[q._id] !== undefined
+                          ? "bg-success/10 text-success border border-success/30"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
                       {index + 1}
@@ -345,7 +351,9 @@ const Quiz = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-4 h-4 rounded bg-muted" />
-                    <span className="text-muted-foreground">Not Answered ({totalQuestions - answeredCount})</span>
+                    <span className="text-muted-foreground">
+                      Not Answered ({totalQuestions - answeredCount})
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-4 h-4 rounded bg-warning" />
@@ -357,6 +365,40 @@ const Quiz = () => {
           </div>
         </div>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Quiz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-2">
+                <p>Are you sure you want to submit your quiz?</p>
+                <div className="bg-muted p-4 rounded-lg mt-4 space-y-1">
+                  <p>
+                    <strong>Answered:</strong> {answeredCount} of {totalQuestions}
+                  </p>
+                  <p>
+                    <strong>Marked for Review:</strong> {markedCount}
+                  </p>
+                  <p>
+                    <strong>Unanswered:</strong> {totalQuestions - answeredCount}
+                  </p>
+                </div>
+                {totalQuestions - answeredCount > 0 && (
+                  <p className="text-warning text-sm mt-2">
+                    You have {totalQuestions - answeredCount} unanswered question(s).
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Quiz</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit}>Submit Quiz</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

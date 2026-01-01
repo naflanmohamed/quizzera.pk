@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Lock, Save } from "lucide-react";
+import { User, Lock, Save } from "lucide-react";
 
 const SettingsPage = () => {
   const { user, updateProfile } = useAuth();
