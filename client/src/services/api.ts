@@ -252,6 +252,58 @@ export interface QuizAttemptLegacy {
   topics: string[];
 }
 
+// Study Streak Tracking
+export interface StudyStreak {
+  currentStreak: number;
+  longestStreak: number;
+  lastStudyDate: string;
+  streakHistory: { date: string; studied: boolean }[];
+}
+
+// Goal Management
+export interface StudyGoal {
+  id: string;
+  type: "daily_questions" | "weekly_hours" | "monthly_tests" | "target_score";
+  title: string;
+  target: number;
+  current: number;
+  deadline?: string;
+  isCompleted: boolean;
+}
+
+// Peer Comparison
+export interface PerformanceComparison {
+  yourScore: number;
+  averageScore: number;
+  topPerformerScore: number;
+  percentile: number;
+  topicComparison: { topic: string; you: number; average: number }[];
+}
+
+// Activity Feed Item
+export interface ActivityItem {
+  id: string;
+  type: "quiz_completed" | "goal_achieved" | "streak_milestone" | "badge_earned";
+  title: string;
+  description: string;
+  timestamp: string;
+  metadata?: Record<string, string>;
+}
+
+// Extended Analytics
+export interface DetailedAnalytics extends Analytics {
+  studyStreak: StudyStreak;
+  goals: StudyGoal[];
+  comparison: PerformanceComparison;
+  monthlyProgress: { month: string; score: number; attempts: number }[];
+  accuracyTrend: { date: string; accuracy: number }[];
+  timeSpentByTopic: { topic: string; hours: number; color: string }[];
+  questionTypePerformance: { type: string; accuracy: number; total: number }[];
+  recentActivity: ActivityItem[];
+  studyRecommendations: { topic: string; priority: "high" | "medium" | "low"; reason: string }[];
+}
+
+
 // ============================================
 // AXIOS INSTANCE WITH INTERCEPTORS
 // ============================================

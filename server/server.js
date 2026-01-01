@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const analyticsRoutes = require('./routes/analytics');
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +67,8 @@ app.use('/api/resources', require('./routes/resources'));
 
 // Blog routes
 app.use('/api/blogs', require('./routes/blogs'));
+
+app.use('/api/analytics', analyticsRoutes);
 
 // ===== ERROR HANDLING =====
 
