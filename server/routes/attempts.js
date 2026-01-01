@@ -12,7 +12,7 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 // Get user's attempt history
-router.get('/my-history', getMyAttempts);
+router.get('/my-attempts', getMyAttempts);
 
 // Get specific attempt result
 router.get('/:attemptId', getAttemptResult);

@@ -38,14 +38,15 @@ if (process.env.NODE_ENV === 'development') {
 // ===== ROUTES =====
 
 // Health check
-app.get('/api/health', (req, res) => {
+// Express backend - add this route
+app.get("/api/health", (req, res) => {
   res.json({
-    success: true,
-    message: 'Quizzera API is running!',
+    status: "ok",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    uptime: process.uptime()
   });
 });
+
 
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));

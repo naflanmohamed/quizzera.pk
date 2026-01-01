@@ -341,6 +341,34 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Add after the apiClient setup
+export const checkApiHealth = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(`${BASE_URL}/health`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
+// Connection event emitter for real-time status updates
+type ConnectionListener = (isOnline: boolean) => void;
+const listeners: Set<ConnectionListener> = new Set();
+
+export const connectionEvents = {
+  subscribe: (listener: ConnectionListener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+  emit: (isOnline: boolean) => {
+    listeners.forEach((listener) => listener(isOnline));
+  },
+};
+
+
 // ============================================
 // API FUNCTIONS
 // ============================================

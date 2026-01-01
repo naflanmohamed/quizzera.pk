@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode  } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
+import {
   Target,
   TrendingUp,
   TrendingDown,
@@ -13,7 +13,6 @@ import {
   Clock,
   Trophy,
   PlayCircle,
-  ChevronRight,
   BookOpen,
   AlertTriangle,
   RefreshCw,
@@ -22,9 +21,26 @@ import {
 import { api, Quiz, QuizAttemptDetail, Analytics } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
+  interface StatCardProps {
+    icon: ReactNode;
+    label: string;
+    value: string | number;
+    extra?: ReactNode;
+  }
+
+/* ============================================
+   SIMPLE IN-MEMORY CACHE
+============================================ */
+
+let dashboardCache: {
+  quizzes?: Quiz[];
+  attempts?: QuizAttemptDetail[];
+  analytics?: Analytics;
+} | null = null;
+
+/* ============================================
+   HELPER FUNCTIONS
+============================================ */
 
 const getScoreColor = (score: number) => {
   if (score >= 70) return "text-green-500";
@@ -53,19 +69,17 @@ const formatRelativeTime = (dateString: string) => {
   return date.toLocaleDateString();
 };
 
-// ============================================
-// LOADING SKELETON COMPONENT
-// ============================================
+/* ============================================
+   LOADING SKELETON
+============================================ */
 
 const DashboardSkeleton = () => (
   <div className="space-y-8">
-    {/* Welcome Section Skeleton */}
     <div className="space-y-2">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-4 w-96" />
     </div>
 
-    {/* Stats Grid Skeleton */}
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {[1, 2, 3, 4].map((i) => (
         <Card key={i}>
@@ -82,7 +96,6 @@ const DashboardSkeleton = () => (
       ))}
     </div>
 
-    {/* Content Grid Skeleton */}
     <div className="grid lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2">
         <CardHeader>
@@ -91,34 +104,8 @@ const DashboardSkeleton = () => (
         <CardContent className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-4 rounded-xl bg-muted/50">
-              <div className="flex justify-between mb-3">
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16" />
-              </div>
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-2 flex-1" />
-                <Skeleton className="h-8 w-20" />
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-3">
-              <Skeleton className="w-12 h-12 rounded-xl" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-3 w-24" />
-              </div>
+              <Skeleton className="h-5 w-32 mb-2" />
+              <Skeleton className="h-2 w-full" />
             </div>
           ))}
         </CardContent>
@@ -127,20 +114,18 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-// ============================================
-// ERROR STATE COMPONENT
-// ============================================
+/* ============================================
+   ERROR STATE
+============================================ */
 
 const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
-  <div className="flex flex-col items-center justify-center py-16 px-4">
+  <div className="flex flex-col items-center justify-center py-16">
     <div className="bg-destructive/10 rounded-full p-6 mb-6">
       <AlertTriangle className="w-12 h-12 text-destructive" />
     </div>
-    <h3 className="text-xl font-semibold text-foreground mb-2">
-      Failed to Load Dashboard
-    </h3>
-    <p className="text-muted-foreground text-center max-w-md mb-6">
-      We couldn't fetch your dashboard data. Please check your connection and try again.
+    <h3 className="text-xl font-semibold mb-2">Failed to Load Dashboard</h3>
+    <p className="text-muted-foreground mb-6 text-center max-w-md">
+      We could not fetch your dashboard data. Please try again.
     </p>
     <Button onClick={onRetry} variant="outline">
       <RefreshCw className="w-4 h-4 mr-2" />
@@ -149,20 +134,17 @@ const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
   </div>
 );
 
-// ============================================
-// EMPTY STATE COMPONENTS
-// ============================================
+/* ============================================
+   EMPTY STATES
+============================================ */
 
 const EmptyQuizzesState = () => (
   <div className="text-center py-8">
     <div className="bg-primary/10 rounded-full p-4 w-fit mx-auto mb-4">
       <BookOpen className="w-8 h-8 text-primary" />
     </div>
-    <p className="text-foreground font-medium mb-2">No quizzes enrolled yet</p>
-    <p className="text-sm text-muted-foreground mb-4">
-      Start your learning journey by browsing our quizzes
-    </p>
-    <Button variant="default" asChild>
+    <p className="font-medium mb-2">No quizzes available</p>
+    <Button asChild>
       <Link to="/quizzes">Browse Quizzes</Link>
     </Button>
   </div>
@@ -170,282 +152,193 @@ const EmptyQuizzesState = () => (
 
 const EmptyAttemptsState = () => (
   <div className="text-center py-8">
-    <div className="bg-muted rounded-full p-4 w-fit mx-auto mb-4">
-      <FileText className="w-8 h-8 text-muted-foreground" />
-    </div>
-    <p className="text-foreground font-medium mb-1">No attempts yet</p>
+    <FileText className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
     <p className="text-sm text-muted-foreground">
-      Complete a quiz to see your results here
+      Complete a quiz to see results here
     </p>
   </div>
 );
 
-// ============================================
-// TREND ICON COMPONENT
-// ============================================
+/* ============================================
+   TREND ICON
+============================================ */
 
 const TrendIcon = ({ trend }: { trend: "up" | "down" | "stable" }) => {
-  switch (trend) {
-    case "up":
-      return <TrendingUp className="w-4 h-4 text-green-500" />;
-    case "down":
-      return <TrendingDown className="w-4 h-4 text-red-500" />;
-    default:
-      return <Minus className="w-4 h-4 text-yellow-500" />;
-  }
+  if (trend === "up") return <TrendingUp className="w-4 h-4 text-green-500" />;
+  if (trend === "down") return <TrendingDown className="w-4 h-4 text-red-500" />;
+  return <Minus className="w-4 h-4 text-yellow-500" />;
 };
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
+/* ============================================
+   MAIN COMPONENT
+============================================ */
 
 const DashboardHome = () => {
   const { user } = useAuth();
+
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [attempts, setAttempts] = useState<QuizAttemptDetail[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
+  const fetchDashboardData = async (forceRefresh = false) => {
     setError(null);
+
+    if (dashboardCache && !forceRefresh) {
+      setQuizzes(dashboardCache.quizzes || []);
+      setAttempts(dashboardCache.attempts || []);
+      setAnalytics(dashboardCache.analytics || null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       const [quizzesData, attemptsData, analyticsData] = await Promise.all([
         api.getQuizzes({ isPublished: true }),
         api.getMyAttempts({ status: "completed" }),
         api.getAnalytics(),
       ]);
-      setQuizzes(quizzesData.slice(0, 3));
-      setAttempts(attemptsData.slice(0, 5));
+
+      const slicedQuizzes = quizzesData.slice(0, 3);
+      const slicedAttempts = attemptsData.slice(0, 5);
+
+      dashboardCache = {
+        quizzes: slicedQuizzes,
+        attempts: slicedAttempts,
+        analytics: analyticsData,
+      };
+
+      setQuizzes(slicedQuizzes);
+      setAttempts(slicedAttempts);
       setAnalytics(analyticsData);
-    } catch (err) {
-      console.error("Error loading dashboard data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+    } catch {
+      setError("Failed to load dashboard");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    let mounted = true;
+    if (mounted) fetchDashboardData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Loading State
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
-
-  // Error State
-  if (error) {
-    return <ErrorState onRetry={fetchDashboardData} />;
-  }
+  if (isLoading) return <DashboardSkeleton />;
+  if (error) return <ErrorState onRetry={() => fetchDashboardData(true)} />;
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Welcome back, {user?.name?.split(" ")[0] || "Student"}! 👋
+        <h2 className="text-2xl font-bold">
+          Welcome back, {user?.name?.split(" ")[0] || "Student"} 👋
         </h2>
         <p className="text-muted-foreground">
-          Track your progress and continue your exam preparation.
+          Track your progress and continue your preparation
         </p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Target className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tests Completed</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {analytics?.testsCompleted || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Avg. Accuracy</p>
-                  {analytics?.recentTrend && (
-                    <TrendIcon trend={analytics.recentTrend} />
-                  )}
-                </div>
-                <p className={`text-2xl font-bold ${getScoreColor(analytics?.averageAccuracy || 0)}`}>
-                  {analytics?.averageAccuracy || 0}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Study Hours</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {analytics?.totalStudyHours || 0}h
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-yellow-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Rank</p>
-                <p className="text-2xl font-bold text-foreground">
-                  #{analytics?.rank || "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={<Target />} label="Tests Completed" value={analytics?.testsCompleted ?? 0} />
+        <StatCard
+          icon={<TrendingUp />}
+          label="Avg Accuracy"
+          value={`${analytics?.averageAccuracy ?? 0}%`}
+          extra={analytics?.recentTrend && <TrendIcon trend={analytics.recentTrend} />}
+        />
+        <StatCard icon={<Clock />} label="Study Hours" value={`${analytics?.totalStudyHours ?? 0}h`} />
+        <StatCard icon={<Trophy />} label="Rank" value={`#${analytics?.rank ?? "-"}`} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Available Quizzes */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Continue Preparation</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/quizzes">
-                  View all
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Link>
+            <CardHeader className="flex justify-between">
+              <CardTitle>Continue Preparation</CardTitle>
+              <Button variant="ghost" asChild>
+                <Link to="/quizzes">View all</Link>
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {quizzes.length === 0 ? (
-                <EmptyQuizzesState />
-              ) : (
-                quizzes.map((quiz) => (
-                  <div
-                    key={quiz._id}
-                    className="p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all hover:shadow-sm"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-foreground truncate">
-                          {quiz.title}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {quiz.totalQuestions} questions • {quiz.duration} mins
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
-                        <Badge 
-                          variant={
-                            quiz.difficulty === "easy" ? "secondary" :
-                            quiz.difficulty === "medium" ? "default" :
-                            quiz.difficulty === "hard" ? "destructive" : "outline"
-                          }
-                          className="capitalize"
-                        >
-                          {quiz.difficulty}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {quiz.totalAttempts} attempts • Avg: {quiz.averageScore}%
-                        </p>
-                        <Progress 
-                          value={quiz.averageScore} 
-                          className={`h-2 ${
-                            quiz.averageScore >= 70 
-                              ? '[&>div]:bg-green-500' 
-                              : quiz.averageScore >= 50 
-                                ? '[&>div]:bg-yellow-500' 
-                                : '[&>div]:bg-red-500'
-                          }`}
-                        />
-                      </div>
-                      <Button size="sm" asChild>
-                        <Link to={`/quiz/${quiz._id}`}>
-                          <PlayCircle className="w-4 h-4 mr-1" />
-                          Start
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+            <CardContent>
+              {quizzes.length === 0 ? <EmptyQuizzesState /> : quizzes.map((quiz) => (
+                <QuizCard key={quiz._id} quiz={quiz} />
+              ))}
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Attempts */}
-        <div>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Attempts</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard/quizzes">
-                  View all
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {attempts.length === 0 ? (
-                <EmptyAttemptsState />
-              ) : (
-                attempts.map((attempt) => {
-                  const score = attempt.percentage || attempt.score || 0;
-                  return (
-                    <Link
-                      key={attempt._id}
-                      to={`/results/${attempt._id}`}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-                    >
-                      <div className={`w-12 h-12 rounded-xl ${getScoreBgColor(score)} flex items-center justify-center`}>
-                        <span className={`text-sm font-bold ${getScoreColor(score)}`}>
-                          {Math.round(score)}%
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                          {attempt.quizName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {attempt.correctAnswers}/{attempt.totalQuestions} correct • {formatRelativeTime(attempt.completedAt)}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </Link>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Attempts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {attempts.length === 0 ? <EmptyAttemptsState /> : attempts.map((a) => (
+              <AttemptRow key={a._id} attempt={a} />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+};
+
+/* ============================================
+   SMALL COMPONENTS
+============================================ */
+
+const StatCard = ({ icon, label, value, extra }: StatCardProps) => (
+  <Card>
+    <CardContent className="p-6 flex items-center gap-4">
+      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+          {extra}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+
+const QuizCard = ({ quiz }: { quiz: Quiz }) => (
+  <div className="p-4 rounded-xl bg-muted/50 mb-3">
+    <div className="flex justify-between mb-2">
+      <h4 className="font-semibold">{quiz.title}</h4>
+      <Badge className="capitalize">{quiz.difficulty}</Badge>
+    </div>
+    <Progress value={quiz.averageScore} />
+    <Button size="sm" className="mt-3" asChild>
+      <Link to={`/quiz/${quiz._id}`}>
+        <PlayCircle className="w-4 h-4 mr-1" />
+        Start
+      </Link>
+    </Button>
+  </div>
+);
+
+const AttemptRow = ({ attempt }: { attempt: QuizAttemptDetail }) => {
+  const score = attempt.percentage || attempt.score || 0;
+  return (
+    <Link to={`/results/${attempt._id}`} className="flex gap-4 p-3 rounded-lg hover:bg-muted">
+      <div className={`w-12 h-12 rounded-xl ${getScoreBgColor(score)} flex items-center justify-center`}>
+        <span className={getScoreColor(score)}>{Math.round(score)}%</span>
+      </div>
+      <div>
+        <p className="font-medium">{attempt.quizName}</p>
+        <p className="text-xs text-muted-foreground">
+          {formatRelativeTime(attempt.completedAt)}
+        </p>
+      </div>
+    </Link>
   );
 };
 
