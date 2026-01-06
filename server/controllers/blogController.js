@@ -66,6 +66,7 @@ const getBlogBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     
+    // Find blog
     const blog = await Blog.findOne({
       $or: [
         { _id: slug.match(/^[0-9a-fA-F]{24}$/) ? slug : null },
@@ -88,9 +89,24 @@ const getBlogBySlug = async (req, res) => {
       });
     }
     
-    // Increment view count
-    blog.viewCount += 1;
-    await blog.save();
+    // Check if user has liked this blog
+    const isLiked = req.user && blog.likedBy.includes(req.user._id);
+
+    // View Count Logic
+    // If user is logged in, use viewedBy for unique views
+    if (req.user) {
+      if (!blog.viewedBy.includes(req.user._id)) {
+        blog.viewedBy.push(req.user._id);
+        blog.viewCount += 1;
+        await blog.save();
+      }
+    } else {
+      // For guests, we still increment viewCount blindly to capture traffic
+      // Or we can choose not to count guests if strict uniqueness is required.
+      // Current decision: Count guests non-uniquely.
+      blog.viewCount += 1;
+      await blog.save();
+    }
     
     // Get auto-related blogs if none manually selected
     let relatedBlogs = blog.relatedBlogs;
@@ -102,7 +118,8 @@ const getBlogBySlug = async (req, res) => {
       success: true,
       data: {
         ...blog.toObject(),
-        relatedBlogs
+        relatedBlogs,
+        isLiked // Return isLiked status
       }
     });
   } catch (error) {
@@ -272,18 +289,15 @@ const deleteBlog = async (req, res) => {
   }
 };
 
-// @desc    Like a blog
+// @desc    Like a blog (Toggle)
 // @route   POST /api/blogs/:id/like
 // @access  Private
 const likeBlog = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user._id;
     
-    const blog = await Blog.findByIdAndUpdate(
-      id,
-      { $inc: { likeCount: 1 } },
-      { new: true }
-    );
+    const blog = await Blog.findById(id);
     
     if (!blog) {
       return res.status(404).json({
@@ -291,10 +305,28 @@ const likeBlog = async (req, res) => {
         message: 'Blog not found'
       });
     }
+
+    // Check if already liked
+    const index = blog.likedBy.indexOf(userId);
+
+    if (index === -1) {
+      // Not liked yet -> Like it
+      blog.likedBy.push(userId);
+      blog.likeCount += 1;
+    } else {
+      // Already liked -> Unlike it (Toggle)
+      blog.likedBy.splice(index, 1);
+      blog.likeCount = Math.max(0, blog.likeCount - 1);
+    }
+
+    await blog.save();
     
     res.json({
       success: true,
-      data: { likeCount: blog.likeCount }
+      data: { 
+        likeCount: blog.likeCount,
+        isLiked: index === -1 // If it was -1, it's now liked (true). If it wasn't, it's now unliked (false).
+      }
     });
   } catch (error) {
     console.error('Like Blog Error:', error);
@@ -313,7 +345,8 @@ const getTags = async (req, res) => {
     const tags = await Blog.aggregate([
       { $match: { status: 'published' } },
       { $unwind: '$tags' },
-      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $addFields: { tagStr: { $toString: "$tags" } } },
+      { $group: { _id: '$tagStr', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 20 }
     ]);

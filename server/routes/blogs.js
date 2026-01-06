@@ -11,14 +11,14 @@ const {
   likeBlog,
   getTags
 } = require('../controllers/blogController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, optionalProtect } = require('../middleware/auth');
 
 // Public routes
 router.get('/', getBlogs);
 router.get('/featured', getFeaturedBlogs);
 router.get('/trending', getTrendingBlogs);
 router.get('/tags', getTags);
-router.get('/:slug', getBlogBySlug);
+router.get('/:slug', optionalProtect, getBlogBySlug);
 
 // Protected routes
 router.post('/:id/like', protect, likeBlog);

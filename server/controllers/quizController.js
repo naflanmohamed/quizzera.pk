@@ -10,7 +10,7 @@ const getQuizzes = async (req, res) => {
     const {
       category,
       difficulty,
-      status = 'published',
+      status,
       featured,
       premium,
       search,
@@ -22,11 +22,17 @@ const getQuizzes = async (req, res) => {
     // Build query
     const query = {};
     
-    // Only show published quizzes to non-admin users
-    if (!req.user || !['admin', 'instructor'].includes(req.userRole)) {
+    // Logic for status filtering
+    const isAdmin = req.user && req.userRoles && (req.userRoles.includes('admin') || req.userRoles.includes('instructor'));
+    
+    if (!isAdmin) {
+      // Public users only see published quizzes
       query.status = 'published';
-    } else if (status) {
-      query.status = status;
+    } else {
+      // Admins/Instructors see all unless filtered
+      if (status) {
+        query.status = status;
+      }
     }
     
     if (category) query.category = category;

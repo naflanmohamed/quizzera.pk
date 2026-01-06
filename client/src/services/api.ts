@@ -19,6 +19,7 @@ export interface User {
   avatar?: string;
   phone?: string;
   role: "user" | "admin" | "instructor";
+  roles?: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -79,7 +80,7 @@ export interface QuestionOption {
 export interface Question {
   _id: string;
   quiz: string;
-  questionText: string;
+  question: string;
   questionType: "single" | "multiple" | "true_false" | "fill_blank";
   options: { text: string; isCorrect?: boolean }[];
   explanation?: string;
@@ -141,6 +142,8 @@ export interface PdfResource {
   title: string;
   description?: string;
   fileUrl: string;
+  originalName: string;
+  fileSize: number;
   thumbnailUrl?: string;
   category: string | Category;
   subject?: string;
@@ -311,16 +314,24 @@ export interface DetailedAnalytics extends Analytics {
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
-  headers: { "Content-Type": "application/json" },
 });
 
 // Request Interceptor - Add Auth Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("auth_token");
-    if (token && config.headers) {
+    if (!config.headers) {
+      config.headers = {} as any;
+    }
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Allow browser to set Content-Type for FormData (multipart/form-data)
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -332,9 +343,8 @@ apiClient.interceptors.response.use(
   (error: AxiosError<ApiError>) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("auth_token");
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
+      // Don't redirect, let React state handle it
+      // window.location.href = "/login";
     }
     const message = error.response?.data?.message || error.message || "An error occurred";
     return Promise.reject(new Error(message));
@@ -434,8 +444,22 @@ export const api = {
   },
 
   async getCategoryBySlug(slug: string): Promise<Category> {
-    const response = await apiClient.get<ApiResponse<Category>>(`/categories/slug/${slug}`);
+    const response = await apiClient.get<ApiResponse<Category>>(`/categories/${slug}`);
     return response.data.data!;
+  },
+
+  async createCategory(data: Category): Promise<Category> {
+    const response = await apiClient.post<ApiResponse<Category>>("/categories", data);
+    return response.data.data!;
+  },
+
+  async updateCategory(id: string, data: Category): Promise<Category> {
+    const response = await apiClient.put<ApiResponse<Category>>(`/categories/${id}`, data);
+    return response.data.data!;
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    await apiClient.delete(`/categories/${id}`);
   },
 
   // ==========================================
@@ -464,7 +488,7 @@ export const api = {
   },
 
   async getQuizBySlug(slug: string): Promise<Quiz> {
-    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/slug/${slug}`);
+    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/${slug}`);
     return response.data.data!;
   },
 
@@ -478,13 +502,48 @@ export const api = {
     return response.data.data || [];
   },
 
+  async createQuiz(data: Quiz): Promise<Quiz> {
+    const response = await apiClient.post<ApiResponse<Quiz>>("/quizzes", data);
+    return response.data.data!;
+  },
+
+  async updateQuiz(id: string, data: Quiz): Promise<Quiz> {
+    const response = await apiClient.put<ApiResponse<Quiz>>(`/quizzes/${id}`, data);
+    return response.data.data!;
+  },
+
+  async deleteQuiz(id: string): Promise<void> {
+    await apiClient.delete(`/quizzes/${id}`);
+  },
+
+  async publishQuiz(id: string): Promise<Quiz> {
+    const response = await apiClient.put<ApiResponse<Quiz>>(`/quizzes/${id}/publish`);
+    return response.data.data!;
+  },
+
   // ==========================================
   // QUESTIONS
   // ==========================================
   
-  async getQuizQuestions(quizId: string): Promise<Question[]> {
-    const response = await apiClient.get<ApiResponse<Question[]>>(`/quizzes/${quizId}/questions`);
+  async getQuestions(quizId: string): Promise<Question[]> {
+    const response = await apiClient.get<ApiResponse<Question[]>>(`/quizzes/${quizId}/questions`, {
+       params: { includeAnswers: true } // Request answers for admin
+    });
     return response.data.data || [];
+  },
+  
+  async createQuestion(quizId: string, data: Question): Promise<Question> {
+    const response = await apiClient.post<ApiResponse<Question>>(`/quizzes/${quizId}/questions`, data);
+    return response.data.data!;
+  },
+
+  async updateQuestion(id: string, data: Question): Promise<Question> {
+    const response = await apiClient.put<ApiResponse<Question>>(`/questions/${id}`, data);
+    return response.data.data!;
+  },
+
+  async deleteQuestion(id: string): Promise<void> {
+    await apiClient.delete(`/questions/${id}`);
   },
 
   // ==========================================
@@ -553,7 +612,25 @@ export const api = {
 
   async downloadPdf(id: string): Promise<string> {
     const response = await apiClient.get<ApiResponse<{ downloadUrl: string }>>(`/resources/pdfs/${id}/download`);
-    return response.data.data!.downloadUrl;
+    let url = response.data.data!.downloadUrl;
+    if (url.startsWith('/uploads') || url.startsWith('uploads/')) {
+        // Remove '/api' from the end of BASE_URL if present to get the root URL
+        const rootUrl = BASE_URL.replace(/\/api\/?$/, '');
+        // Ensure url starts with /
+        const relativePath = url.startsWith('/') ? url : `/${url}`;
+        url = `${rootUrl}${relativePath}`;
+    }
+    return url;
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async createPdf(data: any): Promise<PdfResource> {
+    const response = await apiClient.post<ApiResponse<PdfResource>>("/resources/pdfs", data);
+    return response.data.data!;
+  },
+
+  async deletePdf(id: string): Promise<void> {
+    await apiClient.delete(`/resources/pdfs/${id}`);
   },
 
   async getResourceTypes(): Promise<string[]> {
@@ -578,7 +655,7 @@ export const api = {
   },
 
   async getBlogBySlug(slug: string): Promise<Blog> {
-    const response = await apiClient.get<ApiResponse<Blog>>(`/blogs/slug/${slug}`);
+    const response = await apiClient.get<ApiResponse<Blog>>(`/blogs/${slug}`);
     return response.data.data!;
   },
 
@@ -597,13 +674,27 @@ export const api = {
     return response.data.data || [];
   },
 
-  async likeBlog(id: string): Promise<Blog> {
-    const response = await apiClient.post<ApiResponse<Blog>>(`/blogs/${id}/like`);
+  async likeBlog(id: string): Promise<{ likeCount: number; isLiked: boolean }> {
+    const response = await apiClient.post<ApiResponse<{ likeCount: number; isLiked: boolean }>>(`/blogs/${id}/like`);
     return response.data.data!;
   },
 
-  async getBlogTags(): Promise<string[]> {
-    const response = await apiClient.get<ApiResponse<string[]>>("/blogs/tags");
+  async createBlog(data: Partial<Blog>): Promise<Blog> {
+    const response = await apiClient.post<ApiResponse<Blog>>("/blogs", data);
+    return response.data.data!;
+  },
+
+  async updateBlog(id: string, data: Partial<Blog>): Promise<Blog> {
+    const response = await apiClient.put<ApiResponse<Blog>>(`/blogs/${id}`, data);
+    return response.data.data!;
+  },
+
+  async deleteBlog(id: string): Promise<void> {
+    await apiClient.delete(`/blogs/${id}`);
+  },
+
+  async getBlogTags(): Promise<{ _id: string; count: number }[]> {
+    const response = await apiClient.get<ApiResponse<{ _id: string; count: number }[]>>("/blogs/tags");
     return response.data.data || [];
   },
 
@@ -685,6 +776,44 @@ export const api = {
 
   async getMentorMessages() {
     return [];
+  },
+
+  // ==========================================
+  // ADMIN
+  // ==========================================
+  
+  async getAdminStats(): Promise<{
+    counts: {
+      users: number;
+      quizzes: number;
+      attempts: number;
+      blogs: number;
+      categories: number;
+    };
+    recentUsers: User[];
+    recentActivity: any[];
+  }> {
+    const response = await apiClient.get<ApiResponse<{
+      counts: {
+        users: number;
+        quizzes: number;
+        attempts: number;
+        blogs: number;
+        categories: number;
+      };
+      recentUsers: User[];
+      recentActivity: any[];
+    }>>("/admin/stats");
+    return response.data.data!;
+  },
+
+  async getAllUsers(page: number = 1, limit: number = 10): Promise<{ users: User[]; pagination: any }> {
+    const response = await apiClient.get<ApiResponse<User[]>>(`/admin/users?page=${page}&limit=${limit}`);
+    return { users: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    await apiClient.delete(`/admin/users/${id}`);
   },
 };
 

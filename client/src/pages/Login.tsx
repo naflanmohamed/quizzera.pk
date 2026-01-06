@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,18 +14,28 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Get redirect path from query params or default to dashboard
   const from = (location.state as { from?: string })?.from || "/dashboard";
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate(from, { replace: true });
-    return null;
-  }
+  // Handle redirection for authenticated users
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Check for admin role
+      const isAdmin = user.roles 
+          ? (Array.isArray(user.roles) ? user.roles.includes('admin') : user.roles === 'admin') 
+          : user.role === 'admin';
+
+      if (isAdmin) {
+          navigate("/admin", { replace: true });
+      } else {
+          navigate(from, { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +49,7 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      // Navigation is now handled by the useEffect above
     } catch (error) {
       // Error is already handled in AuthContext
       console.error("Login error:", error);
@@ -47,6 +57,10 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  if (isAuthenticated) {
+     return null; // Prevent flicker while redirecting
+  }
 
   return (
     <div className="min-h-screen flex">

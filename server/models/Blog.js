@@ -141,6 +141,18 @@ const blogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Blog'
     }],
+
+    // Users who have liked this blog
+    likedBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+
+    // Users who have viewed this blog (for unique view count)
+    viewedBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
     
     // Allow comments?
     allowComments: {
@@ -156,7 +168,8 @@ const blogSchema = new mongoose.Schema(
 );
 
 // ===== PRE-SAVE: Generate slug, excerpt, and reading time =====
-blogSchema.pre('save', function(next) {
+// ===== PRE-SAVE: Generate slug, excerpt, and reading time =====
+blogSchema.pre('save', async function() {
   // Generate slug
   if (this.isModified('title')) {
     this.slug = this.title
@@ -184,8 +197,6 @@ blogSchema.pre('save', function(next) {
   if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
     this.publishedAt = new Date();
   }
-  
-  next();
 });
 
 // ===== INDEXES =====

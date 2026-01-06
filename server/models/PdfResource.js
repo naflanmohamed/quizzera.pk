@@ -61,7 +61,9 @@ const pdfResourceSchema = new mongoose.Schema(
       enum: [
         'notes',
         'previous_paper',
+        'past_paper', // Added to match frontend
         'syllabus',
+        'book', // Added to match frontend
         'study_material',
         'practice_set',
         'answer_key',
@@ -156,7 +158,7 @@ pdfResourceSchema.virtual('formattedSize').get(function() {
 });
 
 // ===== PRE-SAVE: Generate slug =====
-pdfResourceSchema.pre('save', function(next) {
+pdfResourceSchema.pre('save', async function() {
   if (this.isModified('title')) {
     this.slug = this.title
       .toLowerCase()
@@ -164,11 +166,9 @@ pdfResourceSchema.pre('save', function(next) {
       .replace(/^-+|-+$/g, '')
       + '-' + Date.now().toString(36);  // Add unique suffix
   }
-  next();
 });
 
 // ===== INDEXES =====
-pdfResourceSchema.index({ slug: 1 });
 pdfResourceSchema.index({ category: 1, status: 1 });
 pdfResourceSchema.index({ resourceType: 1 });
 pdfResourceSchema.index({ tags: 1 });

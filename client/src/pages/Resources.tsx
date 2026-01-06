@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +24,13 @@ import { api, PdfResource, Category } from "@/services/api";
 import {Navbar} from "@/components/layout/Navbar";
 import {Footer} from "@/components/layout/Footer";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 
 const resourceTypeIcons: Record<string, React.ReactNode> = {
   notes: <BookOpen className="h-5 w-5" />,
   past_paper: <FileQuestion className="h-5 w-5" />,
   syllabus: <ScrollText className="h-5 w-5" />,
   formula_sheet: <Calculator className="h-5 w-5" />,
-  guide: <BookMarked className="h-5 w-5" />,
+  book: <BookMarked className="h-5 w-5" />,
   other: <Files className="h-5 w-5" />,
 };
 
@@ -40,7 +39,7 @@ const resourceTypeLabels: Record<string, string> = {
   past_paper: "Past Papers",
   syllabus: "Syllabus",
   formula_sheet: "Formula Sheets",
-  guide: "Study Guides",
+  book: "Books",
   other: "Other",
 };
 
@@ -71,7 +70,7 @@ const Resources = () => {
       ]);
       setResources(resourcesData.pdfs);
       setCategories(categoriesData);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load resources",
@@ -95,7 +94,7 @@ const Resources = () => {
         title: "Download Started",
         description: `Downloading ${resource.title}`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Download Failed",
         description: "Unable to download this resource",
@@ -235,7 +234,7 @@ const Resources = () => {
                         <CardTitle className="text-lg line-clamp-2">
                           {resource.title}
                         </CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                           <Badge variant="secondary" className="text-xs">
                             {resourceTypeLabels[resource.resourceType]}
                           </Badge>
@@ -245,7 +244,7 @@ const Resources = () => {
                               Premium
                             </Badge>
                           )}
-                        </CardDescription>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -281,8 +280,12 @@ const Resources = () => {
                     onClick={() => handleDownload(resource)}
                     disabled={resource.isPremium}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    {resource.isPremium ? "Premium Only" : "Download PDF"}
+                    {resource.fileSize === 0 ? (
+                      <Files className="h-4 w-4 mr-2" /> // Use Files or Link icon for external links
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {resource.isPremium ? "Premium Only" : (resource.fileSize === 0 ? "Open Link" : "Download PDF")}
                   </Button>
                 </CardContent>
               </Card>

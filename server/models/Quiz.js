@@ -200,7 +200,6 @@ quizSchema.pre('save', async function() {
 });
 
 // ===== INDEXES =====
-quizSchema.index({ slug: 1 });
 quizSchema.index({ category: 1, status: 1 });
 quizSchema.index({ status: 1, isFeatured: -1 });
 quizSchema.index({ tags: 1 });

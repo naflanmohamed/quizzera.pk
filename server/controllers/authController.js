@@ -131,7 +131,7 @@ const getMe = async (req, res) => {
 
     res.json({
       success: true,
-      user: {
+      data: {
         id: user._id,
         name: user.name,
         email: user.email,
@@ -171,7 +171,7 @@ const updateProfile = async (req, res) => {
 
       res.json({
         success: true,
-        user: {
+        data: {
           id: updatedUser._id,
           name: updatedUser.name,
           email: updatedUser.email,

@@ -20,13 +20,13 @@ const {
   startAttempt,
   getLeaderboard
 } = require('../controllers/attemptController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, optionalProtect } = require('../middleware/auth');
 
-// Public routes
-router.get('/', getQuizzes);
+// Public routes (with optional auth to detect admin)
+router.get('/', optionalProtect, getQuizzes);
 router.get('/featured', getFeaturedQuizzes);
 router.get('/popular', getPopularQuizzes);
-router.get('/:id', getQuizById);
+router.get('/:id', optionalProtect, getQuizById);
 router.get('/:quizId/leaderboard', getLeaderboard);
 
 // Protected routes - Quiz CRUD

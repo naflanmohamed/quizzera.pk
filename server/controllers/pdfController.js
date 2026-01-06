@@ -135,7 +135,7 @@ const downloadPdf = async (req, res) => {
     res.json({
       success: true,
       data: {
-        fileUrl: pdf.fileUrl,
+        downloadUrl: pdf.fileUrl,
         originalName: pdf.originalName
       }
     });
@@ -153,11 +153,37 @@ const downloadPdf = async (req, res) => {
 // @access  Private (Admin/Instructor)
 const createPdf = async (req, res) => {
   try {
+    const { year, isPremium, ...otherFields } = req.body;
+    
     const pdfData = {
-      ...req.body,
+      ...otherFields,
+      // Parse year to integer if present
+      year: year ? parseInt(year, 10) : undefined,
+      // Parse isPremium to boolean (FormData sends 'true'/'false' strings)
+      isPremium: isPremium === 'true',
       uploadedBy: req.user._id
     };
     
+    // Handle file upload
+    if (req.file) {
+      // Normalize path separators for Windows
+      const filePath = req.file.path.replace(/\\/g, '/');
+      pdfData.fileUrl = `${process.env.BASE_URL || ''}/${filePath}`; 
+      pdfData.originalName = req.file.originalname;
+      pdfData.fileSize = req.file.size;
+    } else if (!pdfData.fileUrl) {
+        return res.status(400).json({
+            success: false,
+            message: 'Please provide a file or a valid URL'
+        });
+    }
+
+    // Default values for URL-based resources if not provided
+    if (!pdfData.fileSize) pdfData.fileSize = 0;
+    if (!pdfData.originalName) pdfData.originalName = 'External Link';
+    
+    console.log('Creating PDF with data:', JSON.stringify(pdfData, null, 2));
+
     const pdf = await PdfResource.create(pdfData);
     
     await pdf.populate('category', 'name slug icon');
@@ -168,7 +194,17 @@ const createPdf = async (req, res) => {
       message: 'PDF uploaded successfully'
     });
   } catch (error) {
-    console.error('Create PDF Error:', error);
+    console.error('Create PDF Error Details:', error);
+    console.error('Stack:', error.stack);
+    
+    if (error.name === 'ValidationError') {
+      console.error('Validation Errors:', JSON.stringify(error.errors, null, 2));
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: Object.values(error.errors).map(val => val.message)
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to upload PDF',

@@ -13,6 +13,11 @@ connectDB();
 // Initialize Express app
 const app = express();
 
+console.log('JWT Config:', { 
+  secret: process.env.JWT_SECRET ? 'Set' : 'Missing', 
+  expire: process.env.JWT_EXPIRE 
+});
+
 // ===== MIDDLEWARE =====
 
 // Enable CORS
@@ -23,6 +28,10 @@ app.use(cors({
 
 // Parse JSON request bodies
 app.use(express.json({ limit: '10mb' }));
+
+// Serve static files from 'uploads' directory
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Parse URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
@@ -69,6 +78,7 @@ app.use('/api/resources', require('./routes/resources'));
 // Blog routes
 app.use('/api/blogs', require('./routes/blogs'));
 
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', analyticsRoutes);
 
 // ===== ERROR HANDLING =====
@@ -101,6 +111,14 @@ app.use((err, req, res, next) => {
     return res.status(400).json({
       success: false,
       message: `${field} already exists`
+    });
+  }
+
+  // Multer Error
+  if (err.name === 'MulterError') {
+    return res.status(400).json({
+      success: false,
+      message: `File upload error: ${err.message}`
     });
   }
   

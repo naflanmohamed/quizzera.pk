@@ -29,6 +29,18 @@ import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import DashboardMentors from "./pages/dashboard/DashboardMentors";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 
+// Admin pages
+import { AdminRoute } from "@/components/AdminRoute";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminQuizzes from "./pages/admin/AdminQuizzes";
+import AdminResources from "./pages/admin/AdminResources";
+import AdminBlogs from "./pages/admin/AdminBlogs";
+import AdminQuizEditor from "./pages/admin/AdminQuizEditor";
+import AdminSettings from "./pages/admin/AdminSettings";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -66,6 +78,20 @@ const App = () => (
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="mentors" element={<DashboardMentors />} />
                 <Route path="settings" element={<SettingsPage />} />
+              </Route>
+
+              {/* Admin Routes */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="categories" element={<AdminCategories />} />
+                  <Route path="quizzes" element={<AdminQuizzes />} />
+                  <Route path="quizzes/:id" element={<AdminQuizEditor />} />
+                  <Route path="resources" element={<AdminResources />} />
+                  <Route path="blogs" element={<AdminBlogs />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
               </Route>
               
               {/* Legacy routes */}

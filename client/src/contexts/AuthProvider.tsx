@@ -13,8 +13,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((userData) => {
           setUser(userData);
         })
-        .catch(() => {
-          localStorage.removeItem("auth_token");
+        .catch((err) => {
+          // Only log out if it's an auth error (401/403)
+          // Network errors or server 500s shouldn't log you out
+          if (err.response?.status === 401 || err.response?.status === 403 || err.message === 'Invalid token') {
+             localStorage.removeItem("auth_token");
+             setUser(null);
+          }
         })
         .finally(() => {
           setIsLoading(false);
@@ -26,12 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await api.login(email, password);
     localStorage.setItem("auth_token", result.token);
     setUser(result.user);
+    return result;
   };
 
   const loginWithGoogle = async (token: string) => {
     const result = await api.loginWithGoogle(token);
     localStorage.setItem("auth_token", result.token);
     setUser(result.user);
+    return result;
   };
 
 const register = async (name: string, email: string, password: string) => {

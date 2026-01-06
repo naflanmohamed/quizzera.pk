@@ -1,5 +1,6 @@
 const Question = require('../models/Question');
 const Quiz = require('../models/Quiz');
+const mongoose = require('mongoose');
 
 // @desc    Get questions for a quiz
 // @route   GET /api/quizzes/:quizId/questions
@@ -91,6 +92,14 @@ const createQuestion = async (req, res) => {
       createdBy: req.user._id
     };
     
+    // Generate unique IDs for options if they don't exist
+    const optionsWithIds = questionData.options.map(opt => ({
+      ...opt,
+      id: opt.id || new mongoose.Types.ObjectId().toString()
+    }));
+    
+    questionData.options = optionsWithIds;
+
     // Validate options have correct answers marked
     const hasCorrectAnswer = questionData.options.some(opt => opt.isCorrect);
     if (!hasCorrectAnswer) {
@@ -130,8 +139,13 @@ const updateQuestion = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    // If options are updated, recalculate correct answers
+    // If options are updated, ensure they have IDs and recalculate correct answers
     if (updates.options) {
+      updates.options = updates.options.map(opt => ({
+        ...opt,
+        id: opt.id || new mongoose.Types.ObjectId().toString()
+      }));
+
       updates.correctAnswers = updates.options
         .filter(opt => opt.isCorrect)
         .map(opt => opt.id);

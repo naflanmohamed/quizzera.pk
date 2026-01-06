@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -33,6 +33,16 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      const isAdmin = user.role === 'admin' || (user.roles && (Array.isArray(user.roles) ? user.roles.includes('admin') : user.roles === 'admin'));
+      
+      if (isAdmin) {
+        navigate('/admin', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleLogout = async () => {
     try {
