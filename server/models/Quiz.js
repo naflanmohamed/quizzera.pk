@@ -184,7 +184,7 @@ quizSchema.virtual('isAvailable').get(function() {
 });
 
 // ===== PRE-SAVE: Generate slug and excerpt =====
-quizSchema.pre('save', function(next) {
+quizSchema.pre('save', async function() {
   // Generate slug from title
   if (this.isModified('title')) {
     this.slug = this.title
@@ -197,8 +197,6 @@ quizSchema.pre('save', function(next) {
   if (this.isModified('description') && !this.excerpt) {
     this.excerpt = this.description.substring(0, 297) + '...';
   }
-  
-  next();
 });
 
 // ===== INDEXES =====

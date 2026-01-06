@@ -91,14 +91,13 @@ categorySchema.virtual('quizCount', {
 });
 
 // ===== PRE-SAVE: Generate slug from name =====
-categorySchema.pre('save', function(next) {
+categorySchema.pre('save', async function() {
   if (this.isModified('name')) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric with dash
       .replace(/^-+|-+$/g, '');      // Remove leading/trailing dashes
   }
-  next();
 });
 
 // ===== INDEX: For faster queries =====

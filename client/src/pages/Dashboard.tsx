@@ -11,7 +11,6 @@ import {
   Clock, 
   Target,
   TrendingUp,
-  Calendar,
   PlayCircle,
   ChevronRight,
   Bell,
@@ -22,7 +21,7 @@ import {
   X,
   Home,
   FileText,
-  Award
+  Award,
 } from "lucide-react";
 
 const sidebarItems = [
