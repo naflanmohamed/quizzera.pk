@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAttemptResults } from "@/hooks/useQuiz";
+import { useAttempt } from "@/hooks/useQuiz";
 import {
   CheckCircle2,
   XCircle,
@@ -23,7 +23,7 @@ import {
 
 const QuizResults = () => {
   const { id, attemptId } = useParams<{ id: string; attemptId: string }>();
-  const { data: results, isLoading, error } = useAttemptResults(attemptId || "");
+  const { data: results, isLoading, error } = useAttempt(attemptId || "");
 
   if (isLoading) {
     return (
@@ -178,9 +178,9 @@ const QuizResults = () => {
                   </TabsList>
 
                   <TabsContent value="all" className="space-y-4">
-                    {questions.map((q, index) => {
+                    {questions.map((q: any, index: number) => {
                       const userAnswer = q.userAnswer;
-                      const correctOptionIndex = q.options.findIndex((opt) => opt.isCorrect);
+                      const correctOptionIndex = q.options.findIndex((opt: any) => opt.isCorrect);
                       const isCorrect = userAnswer === correctOptionIndex;
                       const isSkipped = userAnswer === undefined;
 
@@ -212,7 +212,7 @@ const QuizResults = () => {
                           </div>
 
                           <div className="ml-11 space-y-2">
-                            {q.options.map((option, optIndex) => {
+                            {q.options.map((option: any, optIndex: number) => {
                               const isUserAnswer = userAnswer === optIndex;
                               const isCorrectOption = option.isCorrect;
 
@@ -257,11 +257,11 @@ const QuizResults = () => {
                   {/* Similar TabsContent for correct, incorrect, skipped filters */}
                   <TabsContent value="correct" className="space-y-4">
                     {questions
-                      .filter((q) => {
-                        const correctIdx = q.options.findIndex((opt) => opt.isCorrect);
+                      .filter((q: any) => {
+                        const correctIdx = q.options.findIndex((opt: any) => opt.isCorrect);
                         return q.userAnswer === correctIdx;
                       })
-                      .map((q) => (
+                      .map((q: any) => (
                         <div key={q._id} className="p-4 rounded-lg border border-success/30 bg-success/5">
                           <div className="flex items-start gap-3">
                             <CheckCircle2 className="w-5 h-5 text-success mt-1" />
@@ -273,11 +273,11 @@ const QuizResults = () => {
 
                   <TabsContent value="incorrect" className="space-y-4">
                     {questions
-                      .filter((q) => {
-                        const correctIdx = q.options.findIndex((opt) => opt.isCorrect);
+                      .filter((q: any) => {
+                        const correctIdx = q.options.findIndex((opt: any) => opt.isCorrect);
                         return q.userAnswer !== undefined && q.userAnswer !== correctIdx;
                       })
-                      .map((q) => (
+                      .map((q: any) => (
                         <div key={q._id} className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
                           <div className="flex items-start gap-3 mb-2">
                             <XCircle className="w-5 h-5 text-destructive mt-1" />

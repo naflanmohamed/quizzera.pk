@@ -36,7 +36,7 @@ export function HeroSection() {
             </h1>
             
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              Master any competitive exam with AI-powered quizzes, real-time analytics, and personalized study plans. From entry tests to certifications — we've got you covered.
+              Master any competitive exam with AI-powered quizzes, real-time analytics, and personalized study plans. From entry tests to certifications - we've got you covered.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 animate-slide-up" style={{ animationDelay: "0.2s" }}>

@@ -41,7 +41,7 @@ export function useStartAttempt() {
 
   return useMutation({
     mutationFn: (quizId: string) => api.startQuizAttempt(quizId),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-attempts"] });
       toast({
         title: "Quiz Started",
@@ -64,12 +64,14 @@ export function useSaveAnswer() {
     mutationFn: ({ 
       attemptId, 
       questionId, 
-      selectedOption 
+      selectedAnswer,
+      markedForReview
     }: { 
       attemptId: string; 
       questionId: string; 
-      selectedOption: number;
-    }) => api.saveAnswer(attemptId, questionId, selectedOption),
+      selectedAnswer: number | null;
+      markedForReview?: boolean;
+    }) => api.saveAnswer(attemptId, questionId, selectedAnswer, markedForReview),
   });
 }
 
@@ -79,7 +81,10 @@ export function useSubmitAttempt() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (attemptId: string) => api.submitQuizAttempt(attemptId),
+    mutationFn: ({ attemptId, payload }: { attemptId: string; payload?: { timeRemaining?: number; answers?: any[] } }) => {
+      console.log("Submitting attempt:", attemptId, payload);
+      return api.submitQuizAttempt(attemptId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-attempts"] });
       toast({
@@ -97,12 +102,13 @@ export function useSubmitAttempt() {
   });
 }
 
-// Get attempt results
-export function useAttemptResults(attemptId: string) {
+// Get attempt data (works for both in-progress (resume) and completed (results))
+export function useAttempt(attemptId: string) {
   return useQuery({
-    queryKey: ["attempt-results", attemptId],
+    queryKey: ["attempt", attemptId],
     queryFn: () => api.getAttemptResults(attemptId),
     enabled: !!attemptId,
+    refetchOnWindowFocus: false, // Don't refetch on window focus to prevent weird timer jumps
   });
 }
 

@@ -31,7 +31,7 @@ import {
 import { api, QuizAttempt, Exam } from "@/services/api";
 
 const MyQuizzes = () => {
-  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
+  const [attempts, setAttempts] = useState<any[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +46,26 @@ const MyQuizzes = () => {
           api.getQuizAttempts(),
           api.getExams(),
         ]);
-        setAttempts(attemptsData);
+        
+        // Map API response to match component expectations
+        // The API returns nested objects (quiz.title, score.percentage) but component expects flattened properties
+        const mappedAttempts = (attemptsData as any[]).map(a => ({
+          ...a,
+          id: a._id,
+          quizName: a.quiz?.title || a.quizName || "Untitled Quiz",
+          examName: a.examName || "General", // Placeholder as exam data might not be linked directly
+          examId: a.examId || "all",
+          score: typeof a.score === 'object' ? (a.score?.percentage || 0) : (a.score || 0),
+          correctAnswers: typeof a.score === 'object' ? (a.score?.correct || 0) : (a.correctAnswers || 0),
+          incorrectAnswers: typeof a.score === 'object' ? (a.score?.wrong || 0) : (a.incorrectAnswers || 0),
+          skipped: typeof a.score === 'object' ? (a.score?.unanswered || 0) : (a.skipped || 0),
+          totalQuestions: a.quiz?.totalQuestions || a.totalQuestions || 0,
+          topics: a.quiz?.category ? [a.quiz.category.name || a.quiz.category] : (a.topics || []),
+          completedAt: a.completedAt || new Date().toISOString(),
+          timeTaken: a.timeTaken || 0
+        }));
+
+        setAttempts(mappedAttempts);
         setExams(examsData);
       } catch (error) {
         console.error("Error loading quizzes:", error);

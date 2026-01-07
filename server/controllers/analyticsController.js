@@ -12,6 +12,23 @@ exports.getAnalytics = async (req, res) => {
     const totalCorrect = attempts.reduce((sum, a) => sum + (a.obtainedMarks || 0), 0);
     const totalQuestions = attempts.reduce((sum, a) => sum + (a.totalMarks || 0), 0);
     const averageAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+    // Calculate Rank
+    // 1. users ordered by total points
+    const rankingData = await QuizAttempt.aggregate([
+      { $match: { status: 'completed' } },
+      { 
+        $group: { 
+          _id: '$user', 
+          totalPoints: { $sum: '$score.totalPoints' } 
+        } 
+      },
+      { $sort: { totalPoints: -1 } }
+    ]);
+
+    // 2. Find current user's position
+    const userRankIndex = rankingData.findIndex(r => r._id.toString() === userId.toString());
+    const rank = userRankIndex !== -1 ? userRankIndex + 1 : '-';
     
     // Weekly progress
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -100,7 +117,7 @@ exports.getAnalytics = async (req, res) => {
         averageScore,
         averageAccuracy,
         totalStudyHours,
-        rank: 1,
+        rank,
         testsCompleted: totalAttempts,
         topicPerformance,
         weeklyProgress,

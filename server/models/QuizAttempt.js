@@ -156,7 +156,7 @@ quizAttemptSchema.methods.calculateScore = async function() {
   let totalPoints = 0;
   
   for (const answer of this.answers) {
-    if (!answer.selectedAnswer) {
+    if (answer.selectedAnswer === undefined || answer.selectedAnswer === null) {
       unanswered++;
     } else if (answer.isCorrect) {
       correct++;

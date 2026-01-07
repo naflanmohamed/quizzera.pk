@@ -10,7 +10,8 @@ import {
   Menu,
   ShieldCheck,
   FileText,
-  FileUp
+  FileUp,
+  FileQuestion
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,7 @@ export const AdminLayout = () => {
         { icon: Users, label: "Users", href: "/admin/users" },
         { icon: FolderTree, label: "Categories", href: "/admin/categories" },
         { icon: BookOpen, label: "Quizzes", href: "/admin/quizzes" },
+        { icon: FileQuestion, label: "Exams", href: "/admin/exams" },
         { icon: FileUp, label: "Resources", href: "/admin/resources" },
         { icon: FileText, label: "Blogs", href: "/admin/blogs" },
         { icon: Settings, label: "Settings", href: "/admin/settings" },

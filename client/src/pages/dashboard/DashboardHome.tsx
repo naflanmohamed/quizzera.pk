@@ -18,7 +18,7 @@ import {
   RefreshCw,
   FileText,
 } from "lucide-react";
-import { api, Quiz, QuizAttemptDetail, Analytics } from "@/services/api";
+import { api, Quiz, QuizAttemptDetail, Analytics, ExamAttempt } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 
   interface StatCardProps {
@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 let dashboardCache: {
   quizzes?: Quiz[];
   attempts?: QuizAttemptDetail[];
+  examAttempts?: ExamAttempt[];
   analytics?: Analytics;
 } | null = null;
 
@@ -177,7 +178,8 @@ const DashboardHome = () => {
   const { user } = useAuth();
 
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [attempts, setAttempts] = useState<QuizAttemptDetail[]>([]);
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [examAttempts, setExamAttempts] = useState<ExamAttempt[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,6 +190,7 @@ const DashboardHome = () => {
     if (dashboardCache && !forceRefresh) {
       setQuizzes(dashboardCache.quizzes || []);
       setAttempts(dashboardCache.attempts || []);
+      setExamAttempts(dashboardCache.examAttempts || []); // Load from cache
       setAnalytics(dashboardCache.analytics || null);
       setIsLoading(false);
       return;
@@ -196,23 +199,37 @@ const DashboardHome = () => {
     setIsLoading(true);
 
     try {
-      const [quizzesData, attemptsData, analyticsData] = await Promise.all([
+      const [quizzesData, attemptsData, analyticsData, examAttemptsData] = await Promise.all([
         api.getQuizzes({ isPublished: true }),
         api.getMyAttempts({ status: "completed" }),
         api.getAnalytics(),
+        api.getMyExamAttempts()
       ]);
 
       const slicedQuizzes = quizzesData.slice(0, 3);
-      const slicedAttempts = attemptsData.slice(0, 5);
+      
+      // Map attempts to flattened structure
+      const mappedAttempts = (attemptsData as any[]).map(a => ({
+        ...a,
+        _id: a._id,
+        quizName: a.quiz?.title || "Untitled Quiz",
+        percentage: typeof a.score === 'object' ? (a.score?.percentage || 0) : (a.score || 0),
+        score: typeof a.score === 'object' ? (a.score?.percentage || 0) : (a.score || 0),
+        completedAt: a.completedAt || new Date().toISOString()
+      }));
+
+      const slicedAttempts = mappedAttempts.slice(0, 5);
 
       dashboardCache = {
         quizzes: slicedQuizzes,
         attempts: slicedAttempts,
+        examAttempts: examAttemptsData,
         analytics: analyticsData,
       };
 
       setQuizzes(slicedQuizzes);
       setAttempts(slicedAttempts);
+      setExamAttempts(examAttemptsData);
       setAnalytics(analyticsData);
     } catch {
       setError("Failed to load dashboard");
@@ -256,7 +273,69 @@ const DashboardHome = () => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Active Exams Section */}
+          {examAttempts.length > 0 && (
+            <Card>
+              <CardHeader className="flex justify-between">
+                <CardTitle>Active Exams</CardTitle>
+                <Button variant="ghost" asChild>
+                  <Link to="/header/my-exams">View all</Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {/* Deduplicate attempts to show unique exams only */}
+                {(() => {
+                    const uniqueMap = new Map();
+                    examAttempts.forEach(attempt => {
+                        const examId = typeof attempt.exam === 'string' ? attempt.exam : (attempt.exam as any)._id;
+                        if (!uniqueMap.has(examId)) {
+                            uniqueMap.set(examId, attempt);
+                        } else {
+                             const existing = uniqueMap.get(examId);
+                             if (new Date(attempt.startedAt) > new Date(existing.startedAt)) {
+                                 uniqueMap.set(examId, attempt);
+                             }
+                        }
+                    });
+                    const uniqueAttempts = Array.from(uniqueMap.values());
+
+                    return uniqueAttempts.slice(0, 2).map((attempt) => (
+                      <div key={attempt._id} className="p-4 rounded-xl bg-primary/5 mb-3 border border-primary/10">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-semibold text-lg line-clamp-1">{attempt.exam.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Started {formatRelativeTime(attempt.startedAt)}
+                            </p>
+                          </div>
+                          <Badge variant={attempt.status === 'completed' ? 'default' : 'secondary'}>
+                            {attempt.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        
+                        <div className="space-y-2">
+                           <div className="flex justify-between text-sm">
+                             <span>Progress</span>
+                             <span>{attempt.score?.percentage || 0}%</span>
+                           </div>
+                           <Progress value={attempt.score?.percentage || 0} className="h-2" />
+                        </div>
+
+                        <div className="mt-4 flex gap-3">
+                            <Button size="sm" className="w-full" asChild>
+                                <Link to={`/exam-player/${attempt._id}`}>
+                                    {attempt.status === 'completed' ? 'View Results' : 'Continue Exam'}
+                                </Link>
+                            </Button>
+                        </div>
+                      </div>
+                    ));
+                })()}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="flex justify-between">
               <CardTitle>Continue Preparation</CardTitle>
@@ -272,9 +351,9 @@ const DashboardHome = () => {
           </Card>
         </div>
 
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Recent Attempts</CardTitle>
+             <CardTitle>Recent Attempts</CardTitle>
           </CardHeader>
           <CardContent>
             {attempts.length === 0 ? <EmptyAttemptsState /> : attempts.map((a) => (

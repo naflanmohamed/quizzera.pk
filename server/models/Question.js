@@ -132,17 +132,34 @@ questionSchema.virtual('successRate').get(function() {
 
 // ===== METHOD: Check if answer is correct =====
 questionSchema.methods.checkAnswer = function(userAnswer) {
+  // Handle index-based answers from frontend (convert index to ID)
+  if (typeof userAnswer === 'number' && this.options && this.options[userAnswer]) {
+    userAnswer = this.options[userAnswer].id;
+  }
+
+  // Handle array of indices for multiple choice
+  if (Array.isArray(userAnswer) && userAnswer.length > 0 && typeof userAnswer[0] === 'number') {
+    userAnswer = userAnswer.map(ans => {
+      if (typeof ans === 'number' && this.options && this.options[ans]) {
+        return this.options[ans].id;
+      }
+      return ans;
+    });
+  }
+
   // For single choice
   if (this.type === 'single' || this.type === 'true_false') {
-    return this.correctAnswers.includes(userAnswer);
+    // Loose comparison to handle potential string/number mismatches if IDs are numeric strings
+    return this.correctAnswers.some(ans => ans == userAnswer);
   }
   
   // For multiple choice - all answers must match
   if (this.type === 'multiple') {
     if (!Array.isArray(userAnswer)) return false;
     
-    const sortedUser = [...userAnswer].sort();
-    const sortedCorrect = [...this.correctAnswers].sort();
+    // Convert all to strings for comparison
+    const sortedUser = [...userAnswer].map(String).sort();
+    const sortedCorrect = [...this.correctAnswers].map(String).sort();
     
     if (sortedUser.length !== sortedCorrect.length) return false;
     
@@ -152,7 +169,7 @@ questionSchema.methods.checkAnswer = function(userAnswer) {
   // For fill in blank - case insensitive comparison
   if (this.type === 'fill_blank') {
     return this.correctAnswers.some(
-      correct => correct.toLowerCase().trim() === userAnswer.toLowerCase().trim()
+      correct => correct.toLowerCase().trim() === String(userAnswer).toLowerCase().trim()
     );
   }
   

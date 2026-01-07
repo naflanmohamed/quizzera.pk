@@ -77,6 +77,7 @@ app.use('/api/resources', require('./routes/resources'));
 
 // Blog routes
 app.use('/api/blogs', require('./routes/blogs'));
+app.use('/api/exams', require('./routes/exams'));
 
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', analyticsRoutes);

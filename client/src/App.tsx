@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Exams from "./pages/Exams";
+import ExamDetail from "./pages/ExamDetail";
+import ExamPlayer from "./pages/ExamPlayer";
 import Quizzes from "./pages/Quizzes";
 import QuizDetail from "./pages/QuizDetail";
 import Quiz from "./pages/Quiz";
@@ -40,6 +42,8 @@ import AdminResources from "./pages/admin/AdminResources";
 import AdminBlogs from "./pages/admin/AdminBlogs";
 import AdminQuizEditor from "./pages/admin/AdminQuizEditor";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminExams from "./pages/admin/AdminExams";
+import AdminExamEditor from "./pages/admin/AdminExamEditor";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +61,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/exams" element={<Exams />} />
-              <Route path="/exams/:id" element={<Quiz />} />
+              <Route path="/exams/:id" element={<ExamDetail />} />
+              <Route path="/exam-player/:attemptId" element={<ExamPlayer />} />
               <Route path="/quizzes" element={<Quizzes />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
@@ -88,6 +93,8 @@ const App = () => (
                   <Route path="categories" element={<AdminCategories />} />
                   <Route path="quizzes" element={<AdminQuizzes />} />
                   <Route path="quizzes/:id" element={<AdminQuizEditor />} />
+                  <Route path="exams" element={<AdminExams />} />
+                  <Route path="exams/:id" element={<AdminExamEditor />} />
                   <Route path="resources" element={<AdminResources />} />
                   <Route path="blogs" element={<AdminBlogs />} />
                   <Route path="settings" element={<AdminSettings />} />

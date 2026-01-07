@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  startAttempt,
   saveAnswer,
   submitAttempt,
   getAttemptResult,
@@ -10,6 +11,9 @@ const { protect } = require('../middleware/auth');
 
 // All routes are protected
 router.use(protect);
+
+// Start a new attempt (must be before /:attemptId routes)
+router.post('/start', startAttempt);
 
 // Get user's attempt history
 router.get('/my-attempts', getMyAttempts);

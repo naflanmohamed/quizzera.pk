@@ -136,6 +136,54 @@ export interface QuizAttemptDetail {
   rank?: number;
 }
 
+// Exam Types (New)
+export interface ExamModel {
+  _id: string;
+  title: string;
+  slug: string;
+  description: string;
+  instructions: string[];
+  thumbnail?: string;
+  quizzes: {
+    quiz: string | Quiz;
+    order: number;
+    _id: string;
+  }[];
+  duration: number;
+  totalMarks: number;
+  passResult: number;
+  price: number;
+  status: "draft" | "published" | "archived";
+  isFeatured: boolean;
+  startDate?: string;
+  endDate?: string;
+  createdBy: string | User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExamAttempt {
+    _id: string;
+    user: string | User;
+    exam: string | ExamModel;
+    quizAttempts?: {
+        quiz: string | Quiz | { _id: string; title: string; duration: number }; // Allow flexible type or specific
+        attempt: string | QuizAttempt;
+    }[];
+    status: "in_progress" | "completed" | "abandoned" | "timed_out";
+    score: {
+        totalPoints: number;
+        maxPoints: number;
+        percentage: number;
+        passed: boolean;
+    };
+    startedAt: string;
+    completedAt?: string;
+    currentQuizIndex: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // PDF Resource Types
 export interface PdfResource {
   _id: string;
@@ -550,23 +598,27 @@ export const api = {
   // QUIZ ATTEMPTS
   // ==========================================
   
-  async startQuizAttempt(quizId: string): Promise<{ attempt: QuizAttemptDetail; questions: Question[] }> {
-    const response = await apiClient.post<ApiResponse<{ attempt: QuizAttemptDetail; questions: Question[] }>>("/attempts/start", { quizId });
+  async startQuizAttempt(quizId: string, examAttemptId?: string): Promise<{ attempt: QuizAttemptDetail; questions: Question[] }> {
+    const response = await apiClient.post<ApiResponse<{ attempt: QuizAttemptDetail; questions: Question[] }>>("/attempts/start", { quizId, examAttemptId });
     return response.data.data!;
   },
 
-  async saveAnswer(attemptId: string, questionId: string, selectedOption: number): Promise<{ success: boolean }> {
-    const response = await apiClient.post<{ success: boolean }>(`/attempts/${attemptId}/answer`, { questionId, selectedOption });
+  async saveAnswer(attemptId: string, questionId: string, selectedAnswer: number | null, markedForReview?: boolean): Promise<{ success: boolean }> {
+    const response = await apiClient.put<{ success: boolean }>(`/attempts/${attemptId}/answer`, { 
+      questionId, 
+      selectedAnswer,
+      markedForReview 
+    });
     return response.data;
   },
 
-  async submitQuizAttempt(attemptId: string): Promise<QuizAttemptDetail> {
-    const response = await apiClient.post<ApiResponse<QuizAttemptDetail>>(`/attempts/${attemptId}/submit`);
+  async submitQuizAttempt(attemptId: string, payload?: { timeRemaining?: number; answers?: any[] }): Promise<QuizAttemptDetail> {
+    const response = await apiClient.post<ApiResponse<QuizAttemptDetail>>(`/attempts/${attemptId}/submit`, payload);
     return response.data.data!;
   },
 
-  async getAttemptResults(attemptId: string): Promise<QuizAttemptDetail & { questions: (Question & { userAnswer?: number })[] }> {
-    const response = await apiClient.get<ApiResponse<QuizAttemptDetail & { questions: (Question & { userAnswer?: number })[] }>>(`/attempts/${attemptId}/results`);
+  async getAttemptResults(attemptId: string): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>(`/attempts/${attemptId}`);
     return response.data.data!;
   },
 
@@ -734,6 +786,52 @@ export const api = {
   async getMentorById(id: string): Promise<Mentor> {
     const response = await apiClient.get<ApiResponse<Mentor>>(`/mentors/${id}`);
     return response.data.data!;
+  },
+
+  // ==========================================
+  // EXAMS (New)
+  // ==========================================
+  
+  async getExamsList(params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ exams: ExamModel[]; pagination?: ApiResponse<ExamModel[]>["pagination"] }> {
+    const response = await apiClient.get<ApiResponse<ExamModel[]>>("/exams", { params });
+    return { exams: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async getExamDetails(id: string): Promise<ExamModel> {
+    const response = await apiClient.get<ApiResponse<ExamModel>>(`/exams/${id}`);
+    return response.data.data!;
+  },
+
+  async createAdminExam(data: Partial<ExamModel>): Promise<ExamModel> {
+    const response = await apiClient.post<ApiResponse<ExamModel>>("/exams", data);
+    return response.data.data!;
+  },
+
+  async updateAdminExam(id: string, data: Partial<ExamModel>): Promise<ExamModel> {
+    const response = await apiClient.put<ApiResponse<ExamModel>>(`/exams/${id}`, data);
+    return response.data.data!;
+  },
+
+  async deleteAdminExam(id: string): Promise<void> {
+    await apiClient.delete(`/exams/${id}`);
+  },
+
+  async startExamAttempt(id: string): Promise<ExamAttempt> {
+    const response = await apiClient.post<ApiResponse<ExamAttempt>>(`/exams/${id}/start`);
+    return response.data.data!;
+  },
+
+  async submitExamAttempt(id: string): Promise<void> {
+    await apiClient.put(`/exams/${id}/submit`);
+  },
+
+  async getMyExamAttempts(): Promise<ExamAttempt[]> {
+    const response = await apiClient.get<ApiResponse<ExamAttempt[]>>("/exams/my-attempts");
+    return response.data.data || [];
   },
 
   // ==========================================
