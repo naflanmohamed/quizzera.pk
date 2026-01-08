@@ -14,9 +14,18 @@ import {
   TrendingUp,
   Zap,
   Target,
+  Sparkles,
+  X
 } from "lucide-react";
 import { useState } from "react";
 import { useQuizzes, useCategories } from "@/hooks/useQuiz";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const difficultyColors: Record<string, string> = {
   Easy: "bg-success/10 text-success border-success/20",
@@ -40,114 +49,154 @@ const Quizzes = () => {
     isPublished: true,
   });
 
-  const categoryOptions = ["All", ...categories.map((c) => c.name)];
   const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
-      <main className="pt-24 pb-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <Badge variant="gradient" className="mb-4">
-              <Zap className="w-3 h-3 mr-1" />
-              Quick Practice
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">
-              Practice <span className="text-primary">Quizzes</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Sharpen your skills with topic-wise quizzes. Quick, focused practice
-              sessions to boost your exam preparation.
-            </p>
+      
+      <main className="pb-24">
+         {/* Premium Hero Section */}
+         <section className="relative pt-32 pb-40 overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 bg-background">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] animate-pulse-slow" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px] animate-float" />
           </div>
+          
+          <div className="container relative mx-auto px-4 z-10">
+            <div className="max-w-4xl mx-auto text-center space-y-8 animate-slide-up">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary/20 text-primary font-medium text-sm mb-4 bg-white/50 dark:bg-black/20">
+                <Zap className="w-4 h-4" />
+                <span>Quick Practice Mode</span>
+              </div>
+              
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground">
+                 Sharpen Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-accent">Skills</span>
+              </h1>
+              
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Topic-wise quizzes designed for rapid revision. Test your knowledge
+                and boost your speed with focused practice sessions.
+              </p>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8 max-w-xl mx-auto">
-            <div className="text-center p-4 rounded-xl bg-card border border-border">
-              <div className="text-2xl font-bold text-primary">
-                {quizzesLoading ? <Skeleton className="h-8 w-12 mx-auto" /> : quizzes.length}+
+              {/* Stats Preview */}
+              <div className="flex justify-center gap-8 pt-4">
+                <div className="flex flex-col items-center">
+                   <div className="text-3xl font-bold text-foreground">
+                     {quizzesLoading ? <Skeleton className="h-8 w-12 mx-auto" /> : `${quizzes.length}+`}
+                   </div>
+                   <div className="text-sm text-muted-foreground">Quizzes</div>
+                </div>
+                <div className="w-px h-12 bg-border/50" />
+                <div className="flex flex-col items-center">
+                   <div className="text-3xl font-bold text-foreground">
+                    {quizzesLoading ? (
+                      <Skeleton className="h-8 w-12 mx-auto" />
+                    ) : (
+                      `${quizzes.reduce((acc, q) => acc + (q.totalQuestions || 0), 0)}+`
+                    )}
+                   </div>
+                   <div className="text-sm text-muted-foreground">Questions</div>
+                </div>
+                 <div className="w-px h-12 bg-border/50" />
+                 <div className="flex flex-col items-center">
+                    <span className="text-3xl font-bold text-foreground">Free</span>
+                    <span className="text-sm text-muted-foreground">Forever</span>
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">Quizzes</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-card border border-border">
-              <div className="text-2xl font-bold text-accent">
-                {quizzesLoading ? (
-                  <Skeleton className="h-8 w-12 mx-auto" />
-                ) : (
-                  `${quizzes.reduce((acc, q) => acc + (q.totalQuestions || 0), 0)}+`
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">Questions</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-card border border-border">
-              <div className="text-2xl font-bold text-warning">Free</div>
-              <div className="text-xs text-muted-foreground">Forever</div>
             </div>
           </div>
+        </section>
 
-          {/* Search & Filter */}
-          <div className="flex flex-col gap-4 mb-8">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md mx-auto w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search quizzes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        {/* Search & Content Section */}
+        <div className="container mx-auto px-4 -mt-20 relative z-20">
+           {/* Glass Search Bar */}
+          <div className="max-w-4xl mx-auto mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <div className="p-2 rounded-2xl glass border border-white/20 shadow-glow flex flex-col md:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search quizzes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 h-12 bg-transparent border-transparent focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
+                />
+              </div>
             </div>
+            
 
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-2">
-              {categoriesLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-9 w-20" />
-                ))
-              ) : (
-                categoryOptions.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className="whitespace-nowrap"
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto items-center justify-between mt-4">
+               
+               <div className="flex items-center gap-4 flex-1 w-full md:w-auto mt-4">
+                 {/* Category Filter */}
+                 <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={categoriesLoading}>
+                    <SelectTrigger className="w-full md:w-[200px] h-11 bg-background/60 backdrop-blur-xl border-primary/20 hover:border-primary/50 transition-all focus:ring-primary/20">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category._id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                 </Select>
+
+                 {/* Difficulty Filter */}
+                 <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
+                    <SelectTrigger className="w-full md:w-[150px] h-11 bg-background/60 backdrop-blur-xl border-primary/20 hover:border-primary/50 transition-all focus:ring-primary/20">
+                      <SelectValue placeholder="Difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Difficulties</SelectItem>
+                      {difficultyOptions.filter(d => d !== "All").map((difficulty) => (
+                        <SelectItem key={difficulty} value={difficulty}>
+                          {difficulty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                 </Select>
+               </div>
+
+               {/* Clear Filters */}
+               {(selectedCategory !== "All" || selectedDifficulty !== "All" || searchQuery) && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setSelectedCategory("All");
+                      setSelectedDifficulty("All");
+                      setSearchQuery("");
+                    }}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   >
-                    {category}
+                    Clear Filters
+                    <X className="w-4 h-4 ml-2" />
                   </Button>
-                ))
-              )}
+               )}
             </div>
+          </div>
 
-            {/* Difficulty Filter */}
-            <div className="flex justify-center gap-2">
-              {difficultyOptions.map((difficulty) => (
-                <Button
-                  key={difficulty}
-                  variant={selectedDifficulty === difficulty ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedDifficulty(difficulty)}
-                  className={
-                    selectedDifficulty === difficulty
-                      ? ""
-                      : difficulty !== "All"
-                      ? difficultyColors[difficulty]
-                      : ""
-                  }
-                >
-                  {difficulty}
-                </Button>
-              ))}
-            </div>
+          {/* Results Count */}
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-primary" />
+              Available Quizzes
+            </h2>
+             {!quizzesLoading && (
+                <Badge variant="outline" className="px-4 py-1.5 text-sm font-medium">
+                  Showing {quizzes.length} quizzes
+                </Badge>
+             )}
           </div>
 
           {/* Loading State */}
           {quizzesLoading && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="overflow-hidden">
+                <Card key={i} className="h-[280px] animate-pulse bg-muted/20 border-0">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <Skeleton className="w-12 h-12 rounded-xl" />
@@ -187,15 +236,17 @@ const Quizzes = () => {
                 return (
                   <Card
                     key={quiz._id}
-                    className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 overflow-hidden"
+                    className="group border border-border/50 bg-card/50 hover:bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-card hover:-translate-y-1 overflow-hidden relative"
                   >
-                    <CardContent className="p-6">
+                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                     
+                    <CardContent className="p-6 relative">
                       {/* Icon & Category */}
                       <div className="flex items-start justify-between mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300 shadow-sm">
                           {quiz.tags?.[0]?.charAt(0) || "Q"}
                         </div>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs bg-background/50 backdrop-blur-sm">
                           {categoryName}
                         </Badge>
                       </div>
@@ -206,36 +257,40 @@ const Quizzes = () => {
                       </h3>
 
                       {/* Meta */}
-                      <div className="flex flex-wrap gap-3 mb-4">
+                      <div className="flex flex-wrap gap-3 mb-6">
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <FileQuestion className="w-4 h-4" />
+                          <FileQuestion className="w-3.5 h-3.5" />
                           <span>{quiz.totalQuestions} Qs</span>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4" />
+                          <Clock className="w-3.5 h-3.5" />
                           <span>{quiz.duration} min</span>
                         </div>
                         <Badge
                           variant="outline"
-                          className={`text-xs ${difficultyColors[quiz.difficulty]}`}
+                          className={`text-xs ${difficultyColors[quiz.difficulty]} border-0`}
                         >
                           {quiz.difficulty}
                         </Badge>
                       </div>
+                      
+                      {/* Divider */}
+                      <div className="w-full h-px bg-border/50 mb-4" />
 
                       {/* Attempts */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>{(quiz.totalAttempts || 0).toLocaleString()} attempts</span>
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>{(quiz.totalAttempts || 0).toLocaleString()} attempts</span>
+                        </div>
+                        
+                         <Button variant="ghost" size="sm" className="h-8 -mr-2 text-primary hover:bg-primary/10" asChild>
+                            <Link to={`/quiz/${quiz._id}`}>
+                              Start
+                              <Play className="w-3.5 h-3.5 ml-1.5 fill-current" />
+                            </Link>
+                          </Button>
                       </div>
-
-                      {/* Action */}
-                      <Button variant="gradient" className="w-full" asChild>
-                        <Link to={`/quiz/${quiz._id}`}>
-                          <Play className="w-4 h-4 mr-2" />
-                          Start Quiz
-                        </Link>
-                      </Button>
                     </CardContent>
                   </Card>
                 );
@@ -261,5 +316,4 @@ const Quizzes = () => {
     </div>
   );
 };
-
 export default Quizzes;

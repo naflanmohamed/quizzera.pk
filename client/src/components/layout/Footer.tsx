@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from "lucide-react";
+import { BookOpen, Facebook, Twitter, Linkedin, Instagram, Mail } from "lucide-react";
 
 const footerLinks = {
   product: [
     { name: "Features", href: "/features" },
     { name: "Pricing", href: "/pricing" },
     { name: "Exams", href: "/exams" },
+    { name: "Find a Mentor", href: "/mentors" },
+    { name: "Become a Mentor", href: "/dashboard/become-mentor" },
     { name: "Mobile App", href: "/app" },
   ],
   company: [

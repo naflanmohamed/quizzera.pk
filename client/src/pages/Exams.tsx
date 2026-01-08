@@ -13,16 +13,24 @@ import {
   ArrowRight,
   Sparkles,
   Trophy,
-  Target
+  Target,
+  X
 } from "lucide-react";
 import { api, ExamModel } from "@/services/api";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Exams = () => {
     const [exams, setExams] = useState<ExamModel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [selectedPrice, setSelectedPrice] = useState("all");
     
     useEffect(() => {
         const fetchExams = async () => {
@@ -43,9 +51,14 @@ const Exams = () => {
   const filteredExams = exams.filter((exam) => {
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exam.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all"; 
-    // TODO: Implement category filtering when backend supports it
-    return matchesSearch && matchesCategory;
+    
+    const matchesPrice = selectedPrice === "all" 
+      ? true 
+      : selectedPrice === "free" 
+        ? exam.price === 0 
+        : exam.price > 0;
+
+    return matchesSearch && matchesPrice;
   });
 
   return (
@@ -101,7 +114,7 @@ const Exams = () => {
         {/* Search & Content Section */}
         <div className="container mx-auto px-4 -mt-20 relative z-20">
           {/* Glass Search Bar */}
-          <div className="max-w-3xl mx-auto mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <div className="max-w-4xl mx-auto mb-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
             <div className="p-2 rounded-2xl glass border border-white/20 shadow-glow flex flex-col md:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -113,9 +126,38 @@ const Exams = () => {
                   className="pl-12 h-12 bg-transparent border-transparent focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
                 />
               </div>
-              <Button className="h-12 px-8 rounded-xl bg-primary hover:bg-primary-dark transition-all duration-300 shadow-lg shadow-primary/25">
-                Search
-              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto items-center justify-between mt-6">
+               <div className="flex items-center gap-4 flex-1 w-full md:w-auto">
+                 {/* Price Filter */}
+                 <Select value={selectedPrice} onValueChange={setSelectedPrice}>
+                    <SelectTrigger className="w-full md:w-[200px] h-11 bg-background/60 backdrop-blur-xl border-primary/20 hover:border-primary/50 transition-all focus:ring-primary/20">
+                      <SelectValue placeholder="Price" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Prices</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                    </SelectContent>
+                 </Select>
+               </div>
+
+               {/* Clear Filters */}
+               {(selectedPrice !== "all" || searchQuery) && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setSelectedPrice("all");
+                      setSearchQuery("");
+                    }}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Clear Filters
+                    <X className="w-4 h-4 ml-2" />
+                  </Button>
+               )}
             </div>
           </div>
 
@@ -149,7 +191,7 @@ const Exams = () => {
                     variant="outline" 
                     onClick={() => {
                       setSearchQuery("");
-                      setSelectedCategory("all");
+                      setSelectedPrice("all");
                     }}
                     className="hover:bg-primary/5 border-primary/20 hover:border-primary/50"
                   >

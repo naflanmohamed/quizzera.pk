@@ -3,43 +3,62 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Star, MessageCircle, Send } from "lucide-react";
-import { api, Mentor, MentorMessage } from "@/services/api";
+import { Star, MessageCircle, Send, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import api, { Mentor } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 const DashboardMentors = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [messages, setMessages] = useState<MentorMessage[]>([]);
+  // const [messages, setMessages] = useState<any[]>([]); // Removed as we use bookings now
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [messageText, setMessageText] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([api.getMentors(), api.getMentorMessages()])
-      .then(([m, msgs]) => { setMentors(m); setMessages(msgs); })
+    Promise.all([api.getMentors(), api.getMyBookings()])
+      .then(([mResponse]) => { 
+        setMentors(mResponse.mentors); 
+        // setBookings(bResponse); // IF we want to show bookings later
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
   const handleSendMessage = async () => {
-    if (!selectedMentor || !messageText.trim()) return;
-    const newMsg = await api.sendMentorMessage(selectedMentor.id, messageText);
-    setMessages([newMsg, ...messages]);
-    toast({ title: "Message sent to " + selectedMentor.name });
-    setMessageText("");
-    setSelectedMentor(null);
+    if (!selectedMentor) return;
+    try {
+        await api.createBooking({
+            mentorId: selectedMentor._id,
+            date: new Date().toISOString(), // This should be from a date picker
+            duration: 60,
+            topic: messageText,
+            notes: "Initial booking request"
+        });
+        toast({ title: "Booking requested with " + (selectedMentor.user as any).name });
+        setMessageText("");
+        setSelectedMentor(null);
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Failed to book", description: error.message });
+    }
   };
 
   if (isLoading) return <div className="grid md:grid-cols-2 gap-4">{[1,2,3].map(i => <Skeleton key={i} className="h-48" />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">My Mentors</h2>
-        <p className="text-muted-foreground">Get guidance from expert mentors</p>
+      <div className="flex justify-between items-center">
+        <div>
+           <h2 className="text-2xl font-bold text-foreground">My Mentors</h2>
+           <p className="text-muted-foreground">Get guidance from expert mentors</p>
+        </div>
+        <Button onClick={() => navigate("/dashboard/become-mentor")} variant="outline">
+           Become a Mentor
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -47,11 +66,12 @@ const DashboardMentors = () => {
           <Card key={mentor._id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-xl">
-                  {mentor.name.charAt(0)}
-                </div>
+                <Avatar className="w-14 h-14 border-2 border-primary/20">
+                  <AvatarImage src={(mentor.user as any)?.avatar} />
+                  <AvatarFallback className="text-xl bg-primary/10 text-primary">{(mentor.user as any)?.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
                 <div>
-                  <h3 className="font-semibold text-foreground">{mentor.name}</h3>
+                  <h3 className="font-semibold text-foreground">{(mentor.user as any)?.name}</h3>
                   <p className="text-sm text-muted-foreground">{mentor.experience}</p>
                 </div>
               </div>
@@ -64,39 +84,24 @@ const DashboardMentors = () => {
                 {mentor.expertise.slice(0, 3).map((e) => <Badge key={e} variant="secondary" className="text-xs">{e}</Badge>)}
               </div>
               <Button variant="gradient" className="w-full" onClick={() => setSelectedMentor(mentor)}>
-                <MessageCircle className="w-4 h-4 mr-2" />Ask Question
+                <MessageCircle className="w-4 h-4 mr-2" />Book Session
               </Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {messages.length > 0 && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-foreground mb-4">Recent Conversations</h3>
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div key={msg.id} className="p-4 rounded-xl bg-muted/50">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium text-foreground">{msg.mentorName}</span>
-                    <Badge variant={msg.status === "answered" ? "secondary" : "outline"}>{msg.status}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{msg.message}</p>
-                  {msg.response && <p className="text-sm text-foreground mt-2 pl-4 border-l-2 border-primary">{msg.response}</p>}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       <Dialog open={!!selectedMentor} onOpenChange={() => setSelectedMentor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Ask {selectedMentor?.name}</DialogTitle></DialogHeader>
-          <Textarea placeholder="Type your question..." value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
+          <DialogHeader><DialogTitle>Book Session with {(selectedMentor?.user as any)?.name}</DialogTitle></DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">Topic / Message</label>
+            <Textarea placeholder="What would you like to discuss?" value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
+          </div>
           <Button variant="gradient" onClick={handleSendMessage} disabled={!messageText.trim()}>
-            <Send className="w-4 h-4 mr-2" />Send Message
+            <Send className="w-4 h-4 mr-2" />Request Booking
           </Button>
         </DialogContent>
       </Dialog>

@@ -127,7 +127,10 @@ exports.deleteExam = asyncHandler(async (req, res, next) => {
      return next(new ErrorResponse(`User ${req.user.id} is not authorized to delete this exam`, 401));
   }
 
-  await exam.remove(); // Trigger pre-remove hooks if any
+  // Clean up associated attempts
+  await ExamAttempt.deleteMany({ exam: exam._id });
+
+  await exam.deleteOne();
 
   res.status(200).json({ success: true, data: {} });
 });

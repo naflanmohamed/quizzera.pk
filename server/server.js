@@ -82,6 +82,11 @@ app.use('/api/exams', require('./routes/exams'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/analytics', analyticsRoutes);
 
+// Mentor routes
+app.use('/api/mentors', require('./routes/mentors'));
+app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/messages', require('./routes/messages'));
+
 // ===== ERROR HANDLING =====
 
 // 404 handler

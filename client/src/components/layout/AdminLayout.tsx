@@ -31,6 +31,7 @@ export const AdminLayout = () => {
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
         { icon: Users, label: "Users", href: "/admin/users" },
+        { icon: Users, label: "Mentors", href: "/admin/mentors" },
         { icon: FolderTree, label: "Categories", href: "/admin/categories" },
         { icon: BookOpen, label: "Quizzes", href: "/admin/quizzes" },
         { icon: FileQuestion, label: "Exams", href: "/admin/exams" },

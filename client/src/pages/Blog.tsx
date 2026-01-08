@@ -1,55 +1,66 @@
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Calendar,
+  Clock,
+  User,
+  TrendingUp,
+  BookOpen,
+  Eye,
+  Heart,
+  Bookmark,
+  X
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Search, 
-  Calendar, 
-  Clock, 
-  Eye, 
-  Heart,
-  TrendingUp,
-  Bookmark
-} from "lucide-react";
-import { api, Blog as BlogType } from "@/services/api";
-import {Navbar} from "@/components/layout/Navbar";
-import {Footer} from "@/components/layout/Footer";
+import api, { Blog as BlogType } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const Blog = () => {
-  const [searchParams] = useSearchParams();
-  const [blogs, setBlogs] = useState<BlogType[]>([]);
-  const [featuredBlogs, setFeaturedBlogs] = useState<BlogType[]>([]);
-  const [trendingBlogs, setTrendingBlogs] = useState<BlogType[]>([]);
+    const [searchParams, setSearchParams] = useSearchParams();
+  const [posts, setPosts] = useState<BlogType[]>([]);
+  const [featuredPosts, setFeaturedPosts] = useState<BlogType[]>([]);
+  const [trendingPosts, setTrendingPosts] = useState<BlogType[]>([]);
   const [tags, setTags] = useState<{ _id: string; count: number }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [blogsData, featuredData, trendingData, tagsData] = await Promise.all([
+        const [postsRes, featuredRes, trendingRes, tagsRes] = await Promise.all([
           api.getBlogs({ tag: selectedTag || undefined, status: "published" }),
-          api.getFeaturedBlogs(3),
-          api.getTrendingBlogs(5),
-          api.getBlogTags(),
+          api.getFeaturedBlogs(),
+          api.getTrendingBlogs(),
+          api.getBlogTags()
         ]);
-        setBlogs(blogsData.blogs);
-        setFeaturedBlogs(featuredData);
-        setTrendingBlogs(trendingData);
-        setTags(tagsData);
-      } catch {
+
+        setPosts(postsRes.blogs);
+        setFeaturedPosts(featuredRes);
+        setTrendingPosts(trendingRes);
+        setTags(tagsRes);
+      } catch (error) {
+        console.error("Failed to load blog data:", error);
         toast({
-          title: "Error",
-          description: "Failed to load blog posts",
           variant: "destructive",
+          title: "Failed to load content",
+          description: "Please check your connection and try again.",
         });
       } finally {
         setIsLoading(false);
@@ -59,345 +70,294 @@ const Blog = () => {
     fetchData();
   }, [selectedTag, toast]);
 
-  const filteredBlogs = blogs.filter((blog) =>
-    blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Update URL when search changes
+    useEffect(() => {
+        if (searchQuery) {
+            setSearchParams({ search: searchQuery });
+        } else {
+            setSearchParams({});
+        }
+    }, [searchQuery, setSearchParams]);
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy");
+
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  const formatDate = (dateString?: string) => {
+      if (!dateString) return "";
+      return format(new Date(dateString), "MMM dd, yyyy");
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[100px] -ml-32 -mb-32" />
-      </div>
-
+    <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent -z-10" />
-        <div className="container mx-auto px-4 text-center">
-          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-0 px-4 py-1.5 text-sm">
-             Knowledge Hub
-          </Badge>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight text-foreground">
-            Blog & <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Insights</span>
-          </h1>
-          <p className="text-xl text-muted-foreground/90 max-w-2xl mx-auto leading-relaxed mb-8">
-            Expert tips, study strategies, and exam insights to help you ace your path to success.
-          </p>
+      <main className="pb-24">
+        {/* Premium Hero Section */}
+        <section className="relative pt-32 pb-20 overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 bg-background">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] animate-pulse-slow" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px] animate-float" />
+          </div>
           
-          {/* Search Bar Floating */}
-          <div className="max-w-md mx-auto relative group">
-            <div className="absolute inset-0 bg-primary/20 rounded-full blur-md group-hover:bg-primary/30 transition-all duration-300" />
-            <div className="relative bg-card rounded-full shadow-lg border border-border/50 flex items-center p-1.5 transition-transform group-hover:-translate-y-0.5">
-              <Search className="ml-3 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search articles, topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-0 shadow-none focus-visible:ring-0 bg-transparent py-2 px-3 text-base"
-              />
-              {searchQuery && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => setSearchQuery("")}
-                  className="h-8 w-8 p-0 rounded-full mr-1 hover:bg-muted"
-                >
-                  <span className="sr-only">Clear</span>
-                  &times;
-                </Button>
-              )}
+          <div className="container relative mx-auto px-4 z-10">
+            <div className="max-w-4xl mx-auto text-center space-y-8 animate-slide-up">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary/20 text-primary font-medium text-sm mb-4 bg-white/50 dark:bg-black/20">
+                <BookOpen className="w-4 h-4" />
+                <span>Knowledge Hub</span>
+              </div>
+              
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground">
+                 Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-accent">Insights</span>
+              </h1>
+              
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Expert articles, study tips, and educational trends to help you succeed
+                in your learning journey.
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <div className="container mx-auto px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
-          {/* Main Content */}
-          <div>
-            {/* Featured Posts */}
-            {!searchQuery && featuredBlogs.length > 0 && !selectedTag && (
-              <div className="mb-16">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <Bookmark className="h-5 w-5 text-primary" />
-                    Featured
-                  </h2>
+        <div className="container mx-auto px-4 relative z-20">
+        
+          {/* Featured Posts (Carousel style or Grid) */}
+          {!isLoading && featuredPosts.length > 0 && !searchQuery && !selectedTag && (
+             <div className="mb-20 animate-fade-in">
+                <div className="flex items-center gap-2 mb-8">
+                   <Bookmark className="w-5 h-5 text-primary" />
+                   <h2 className="text-2xl font-bold">Featured Stories</h2>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {isLoading ? (
-                    [...Array(2)].map((_, i) => (
-                      <Card key={i} className="border-0 shadow-none bg-muted/40">
-                        <Skeleton className="h-56 w-full rounded-xl" />
-                        <CardContent className="pt-4 px-1">
-                          <Skeleton className="h-6 w-3/4 mb-2" />
-                          <Skeleton className="h-4 w-full" />
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    featuredBlogs.slice(0, 2).map((blog) => (
-                      <Link key={blog._id} to={`/blog/${blog.slug}`} className="group block h-full">
-                        <div className="relative h-full rounded-2xl overflow-hidden bg-card border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                          <div className="aspect-[16/10] overflow-hidden relative">
-                             <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors z-10" />
-                            {blog.featuredImage ? (
-                                <img
-                                  src={blog.featuredImage}
-                                  alt={blog.title}
-                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
-                            ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
-                                    <Bookmark className="h-12 w-12 opacity-20" />
-                                </div>
-                            )}
-                            <div className="absolute top-4 left-4 z-20">
-                               <Badge className="bg-background/90 text-foreground backdrop-blur-sm border-0 shadow-sm hover:bg-background">
-                                   {blog.category}
-                               </Badge>
+                <div className="grid lg:grid-cols-2 gap-8">
+                   <Link to={`/blog/${featuredPosts[0].slug}`} className="group lg:col-span-2 relative h-[400px] rounded-3xl overflow-hidden shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 block">
+                      <img 
+                        src={featuredPosts[0].featuredImage} 
+                        alt={featuredPosts[0].title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+                      <div className="absolute bottom-0 left-0 p-8 sm:p-12 w-full max-w-3xl">
+                         <Badge className="mb-4 bg-primary text-white hover:bg-primary/90 border-0">
+                            {featuredPosts[0].category}
+                         </Badge>
+                         <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4 line-clamp-2">
+                            {featuredPosts[0].title}
+                         </h3>
+                         <p className="text-white/80 text-lg mb-6 line-clamp-2">
+                            {featuredPosts[0].excerpt}
+                         </p>
+                         <div className="flex items-center gap-6 text-white/70">
+                            <span className="font-medium text-white flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                {(featuredPosts[0].author as any)?.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                               <Calendar className="w-4 h-4" />
+                               <span>{formatDate(featuredPosts[0].publishedAt || featuredPosts[0].createdAt)}</span>
                             </div>
-                          </div>
-                          
-                          <div className="p-6">
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3 font-medium">
-                                <span className="flex items-center gap-1">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    {formatDate(blog.publishedAt || blog.createdAt)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    {blog.readingTime} min read
-                                </span>
+                             <div className="flex items-center gap-2">
+                               <Clock className="w-4 h-4" />
+                               <span>{featuredPosts[0].readingTime} min read</span>
                             </div>
-                            
-                            <h3 className="font-bold text-xl mb-3 leading-tight group-hover:text-primary transition-colors">
-                              {blog.title}
-                            </h3>
-                            <p className="text-muted-foreground text-sm line-clamp-2">
-                              {blog.excerpt}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* All Posts */}
-            <div>
-              <div className="flex items-center justify-between mb-8">
-                 <h2 className="text-2xl font-bold">
-                    {searchQuery ? `Results for "${searchQuery}"` : selectedTag ? `Tag: #${selectedTag}` : "Latest Articles"}
-                 </h2>
-                 {(selectedTag || searchQuery) && (
-                     <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => { setSelectedTag(null); setSearchQuery(""); }}
-                        className="text-muted-foreground hover:text-foreground"
-                     >
-                         Clear Filters
-                     </Button>
-                 )}
-              </div>
-
-              {isLoading ? (
-                <div className="space-y-6">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex gap-4">
-                      <Skeleton className="h-32 w-48 rounded-lg flex-shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-6 w-3/4" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-1/2" />
+                         </div>
                       </div>
+                   </Link>
+                </div>
+             </div>
+          )}
+
+          <div className="grid lg:grid-cols-3 gap-12">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-12">
+               
+               {/* Search & Filters */}
+               <div className="mb-12 mt-8">
+                 {/* Glass Search Bar */}
+                 <div className="p-2 rounded-2xl glass border border-white/20 shadow-glow flex flex-col md:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search for articles, topics, or keywords..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-12 h-12 bg-transparent border-transparent focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
+                      />
                     </div>
-                  ))}
-                </div>
-              ) : filteredBlogs.length === 0 ? (
-                <Card className="p-16 text-center border-dashed bg-muted/30">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                     <Search className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">No Articles Found</h3>
-                  <p className="text-muted-foreground max-w-sm mx-auto">
-                    We couldn't find any articles matching your search criteria. Try different keywords or browse by tags.
-                  </p>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {filteredBlogs.map((blog) => (
-                    <Link key={blog._id} to={`/blog/${blog.slug}`} className="block group">
-                      <Card className="overflow-hidden border transition-all duration-300 hover:shadow-lg hover:border-primary/20 bg-card group-hover:-translate-x-1">
-                        <CardContent className="p-0 flex flex-col sm:flex-row">
-                          {blog.featuredImage && (
-                            <div className="w-full sm:w-64 h-48 sm:h-auto relative overflow-hidden flex-shrink-0">
-                                <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors z-10" />
-                              <img
-                                src={blog.featuredImage}
-                                alt={blog.title}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 p-6 flex flex-col">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Badge variant="secondary" className="font-normal text-xs hover:bg-secondary">
-                                {blog.category}
-                              </Badge>
-                              {blog.tags.slice(0, 2).map((tag) => (
-                                <Badge key={tag} variant="outline" className="text-xs font-normal text-muted-foreground">
-                                  #{tag}
-                                </Badge>
-                              ))}
-                            </div>
-                            
-                            <h3 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors">
-                              {blog.title}
-                            </h3>
-                            
-                            <p className="text-muted-foreground text-sm line-clamp-2 mb-4 flex-1">
-                              {blog.excerpt}
-                            </p>
-                            
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-dashed">
-                              <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3.5 w-3.5" />
-                                  {formatDate(blog.publishedAt || blog.createdAt)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  {blog.readingTime} min
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Eye className="h-3.5 w-3.5" />
-                                  {blog.viewCount}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Heart className="h-3.5 w-3.5" />
-                                  {blog.likeCount}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-8">
-            {/* Trending Posts */}
-            <Card className="shadow-sm border-muted">
-              <CardHeader className="pb-3 border-b border-muted/50">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Trending Now
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {isLoading ? (
-                  <div className="space-y-5">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={i} className="flex gap-3">
-                        <Skeleton className="h-8 w-8 rounded shrink-0" />
-                        <Skeleton className="h-4 flex-1 rounded" />
+                  {/* Filter Row */}
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between mt-6">
+                      <div className="flex items-center gap-4 flex-1 w-full md:w-auto">
+                           {/* Tags Filter */}
+                           <Select value={selectedTag || "all"} onValueChange={(val) => setSelectedTag(val === "all" ? null : val)}>
+                              <SelectTrigger className="w-full md:w-[200px] h-11 bg-background/60 backdrop-blur-xl border-primary/20 hover:border-primary/50 transition-all focus:ring-primary/20">
+                                <SelectValue placeholder="Topics" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Topics</SelectItem>
+                                {tags.map((tag) => (
+                                  <SelectItem key={tag._id} value={tag._id}>
+                                    {tag._id} ({tag.count})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                           </Select>
                       </div>
-                    ))}
+
+                       {/* Clear Filters */}
+                       {(selectedTag !== null || searchQuery) && (
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => {
+                            setSelectedTag(null);
+                            setSearchQuery("");
+                          }}
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          Clear Filters
+                          <X className="w-4 h-4 ml-2" />
+                        </Button>
+                     )}
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {trendingBlogs.map((blog, index) => (
-                      <Link
-                        key={blog._id}
-                        to={`/blog/${blog.slug}`}
-                        className="flex items-start gap-4 group"
-                      >
-                        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-muted text-muted-foreground font-bold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug mb-1">
-                            {blog.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {blog.readingTime} min read
-                          </p>
+               </div>
+
+               {/* Articles List */}
+               <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                     <h2 className="text-2xl font-bold">
+                        {searchQuery ? `Results for "${searchQuery}"` : selectedTag ? `Topic: ${selectedTag}` : "Latest Articles"}
+                     </h2>
+                  </div>
+
+                  {isLoading ? (
+                     Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex flex-col md:flex-row gap-6 animate-pulse p-4 rounded-3xl border border-dashed border-border/50">
+                           <Skeleton className="w-full md:w-64 h-48 rounded-2xl" />
+                           <div className="flex-1 space-y-4 py-2">
+                              <Skeleton className="h-4 w-24" />
+                              <Skeleton className="h-8 w-3/4" />
+                              <Skeleton className="h-20 w-full" />
+                              <Skeleton className="h-4 w-32" />
+                           </div>
                         </div>
-                      </Link>
-                    ))}
+                     ))
+                  ) : filteredPosts.length > 0 ? (
+                     filteredPosts.map(post => (
+                        <article key={post._id} className="group relative flex flex-col md:flex-row gap-6 p-4 -mx-4 rounded-3xl hover:bg-white/40 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
+                           <div className="w-full md:w-64 aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden shadow-md bg-muted">
+                              {post.featuredImage ? (
+                                <img 
+                                    src={post.featuredImage} 
+                                    alt={post.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                    <BookOpen className="w-12 h-12 opacity-20" />
+                                </div>
+                              )}
+                           </div>
+                           <div className="flex-1 flex flex-col justify-center">
+                              <div className="flex items-center gap-3 mb-3">
+                                 <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                                    {post.category}
+                                 </Badge>
+                                 <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {post.readingTime} min read
+                                 </span>
+                              </div>
+                              <h3 className="text-2xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+                                 <Link to={`/blog/${post.slug}`}>
+                                    {post.title}
+                                 </Link>
+                              </h3>
+                              <p className="text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                                 {post.excerpt}
+                              </p>
+                              <div className="flex items-center gap-2 mt-auto">
+                                  <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                                      <User className="w-4 h-4 text-primary" />
+                                      {(post.author as any)?.name}
+                                  </span>
+                                  <span className="text-muted-foreground mx-1">•</span>
+                                  <span className="text-sm text-muted-foreground">{formatDate(post.publishedAt || post.createdAt)}</span>
+                                  
+                                  <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                        <Eye className="w-3.5 h-3.5" /> {post.viewCount}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Heart className="w-3.5 h-3.5" /> {post.likeCount}
+                                    </span>
+                                  </div>
+                              </div>
+                           </div>
+                           <Link to={`/blog/${post.slug}`} className="absolute inset-0 z-10" aria-label={`Read ${post.title}`} />
+                        </article>
+                     ))
+                  ) : (
+                     <div className="text-center py-20 rounded-3xl glass border border-dashed border-primary/20">
+                        <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium">No articles found</h3>
+                        <p className="text-muted-foreground">Try adjusting your search criteria</p>
+                     </div>
+                  )}
+               </div>
+            </div>
+
+            {/* Sidebar */}
+            <aside className="space-y-8">
+               {/* Trending Section */}
+               <div className="p-6 rounded-3xl glass border border-white/20 shadow-sm mt-8">
+                  <div className="flex items-center gap-2 mb-6">
+                     <TrendingUp className="w-5 h-5 text-primary" />
+                     <h3 className="font-bold text-lg">Trending Now</h3>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <div className="space-y-6">
+                     {trendingPosts.slice(0, 5).map((post, i) => (
+                        <Link key={post._id} to={`/blog/${post.slug}`} className="group flex gap-4 items-start">
+                           <span className="text-2xl font-bold text-muted-foreground/30 group-hover:text-primary/50 transition-colors">
+                              {String(i + 1).padStart(2, '0')}
+                           </span>
+                           <div>
+                              <h4 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                                 {post.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">{formatDate(post.publishedAt || post.createdAt)}</p>
+                           </div>
+                        </Link>
+                     ))}
+                  </div>
+               </div>
 
-            {/* Tags */}
-            <Card className="shadow-sm border-muted">
-              <CardHeader className="pb-3 border-b border-muted/50">
-                <CardTitle className="text-lg">Popular Topics</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Button
-                      key={tag._id}
-                      variant={selectedTag === tag._id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedTag(selectedTag === tag._id ? null : tag._id)}
-                      className={`h-8 rounded-full text-xs font-normal border ${selectedTag === tag._id ? '' : 'bg-muted/30 border-muted hover:border-primary/50'}`}
-                    >
-                      {tag._id} 
-                      <span className={`ml-1.5 text-[10px] ${selectedTag === tag._id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                          {tag.count}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Newsletter CTA */}
-            <Card className="bg-gradient-to-br from-primary to-primary-dark text-primary-foreground border-none shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-              <CardContent className="pt-8 pb-8 relative z-10">
-                <h3 className="font-bold text-xl mb-2">Stay Updated</h3>
-                <p className="text-sm opacity-90 mb-6 leading-relaxed">
-                  Join our community of students and get the latest exam strategies delivered to your inbox.
-                </p>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Enter your email"
-                    className="bg-white/10 border-white/20 placeholder:text-white/60 text-white focus-visible:ring-offset-primary-dark"
-                  />
-                  <Button variant="secondary" className="w-full font-semibold shadow-md">
-                    Subscribe Free
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+               {/* Newsletter */}
+               <div className="p-6 rounded-3xl bg-primary text-primary-foreground relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+                  <div className="relative z-10">
+                     <h3 className="font-bold text-xl mb-2">Subscribe for Updates</h3>
+                     <p className="text-primary-foreground/80 text-sm mb-6">
+                        Get the latest study tips and exam strategies delivered to your inbox.
+                     </p>
+                     <div className="space-y-2">
+                        <Input 
+                           placeholder="Enter your email" 
+                           className="bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white/30"
+                        />
+                        <Button variant="secondary" className="w-full font-bold shadow-lg">
+                           Subscribe
+                        </Button>
+                     </div>
+                  </div>
+               </div>
+            </aside>
           </div>
         </div>
-      </div>
-
+      </main>
       <Footer />
     </div>
   );

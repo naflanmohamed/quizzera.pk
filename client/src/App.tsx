@@ -29,7 +29,11 @@ import MyExams from "./pages/dashboard/MyExams";
 import MyQuizzes from "./pages/dashboard/MyQuizzes";
 import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import DashboardMentors from "./pages/dashboard/DashboardMentors";
+import BecomeMentor from "./pages/dashboard/BecomeMentor";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import MentorBookings from "./pages/dashboard/MentorBookings";
+import MentorMessages from "./pages/dashboard/MentorMessages";
+import StudentBookings from "./pages/dashboard/StudentBookings";
 
 // Admin pages
 import { AdminRoute } from "@/components/AdminRoute";
@@ -44,6 +48,7 @@ import AdminQuizEditor from "./pages/admin/AdminQuizEditor";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminExams from "./pages/admin/AdminExams";
 import AdminExamEditor from "./pages/admin/AdminExamEditor";
+import AdminMentorApplications from "./pages/admin/AdminMentorApplications";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +87,10 @@ const App = () => (
                 <Route path="quizzes" element={<MyQuizzes />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="mentors" element={<DashboardMentors />} />
+                <Route path="mentor-bookings" element={<MentorBookings />} />
+                <Route path="my-bookings" element={<StudentBookings />} />
+                <Route path="messages" element={<MentorMessages />} />
+                <Route path="become-mentor" element={<BecomeMentor />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
 
@@ -89,6 +98,7 @@ const App = () => (
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />
+                  <Route path="mentors" element={<AdminMentorApplications />} />
                   <Route path="users" element={<AdminUsers />} />
                   <Route path="categories" element={<AdminCategories />} />
                   <Route path="quizzes" element={<AdminQuizzes />} />

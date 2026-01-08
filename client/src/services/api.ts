@@ -253,6 +253,38 @@ export interface Mentor {
   totalSessions: number;
   hourlyRate?: number;
   isAvailable: boolean;
+  status?: "pending" | "approved" | "rejected";
+  linkedin?: string;
+  portfolio?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Booking Types
+export interface Booking {
+  _id: string;
+  mentor: string | User;
+  student: string | User;
+  date: string;
+  duration: number;
+  status: "pending" | "confirmed" | "completed" | "cancelled";
+  notes?: string;
+  meetingLink?: string;
+  topic: string;
+  createdAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Message Types
+export interface Message {
+  _id: string;
+  sender: string | User;
+  recipient: string | User;
+  subject: string;
+  content: string;
+  isRead: boolean;
+  readAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -801,6 +833,53 @@ export const api = {
     return { exams: response.data.data || [], pagination: response.data.pagination };
   },
 
+
+
+  // ==========================================
+  // MENTOR APPLICATIONS & BOOKINGS
+  // ==========================================
+
+  async applyMentor(data: any): Promise<Mentor> {
+    const response = await apiClient.post<ApiResponse<Mentor>>("/mentors/apply", data);
+    return response.data.data!;
+  },
+
+  async getMentorApplications(): Promise<Mentor[]> {
+    const response = await apiClient.get<ApiResponse<Mentor[]>>("/mentors/admin/applications");
+    return response.data.data || [];
+  },
+
+  async updateMentorApplication(id: string, status: "approved" | "rejected"): Promise<Mentor> {
+    const response = await apiClient.put<ApiResponse<Mentor>>(`/mentors/admin/applications/${id}`, { status });
+    return response.data.data!;
+  },
+
+  async deleteMentorApplication(id: string): Promise<void> {
+    await apiClient.delete(`/mentors/admin/applications/${id}`);
+  },
+
+  async createBooking(data: { mentorId: string; date: string; duration: number; notes?: string; topic: string }): Promise<Booking> {
+    const response = await apiClient.post<ApiResponse<Booking>>("/bookings", data);
+    return response.data.data!;
+  },
+
+  async getMyBookings(): Promise<Booking[]> {
+    const response = await apiClient.get<ApiResponse<Booking[]>>("/bookings/my-bookings");
+    return response.data.data || [];
+  },
+
+  async getMentorBookings(): Promise<Booking[]> {
+    const response = await apiClient.get<ApiResponse<Booking[]>>("/bookings/mentor-bookings");
+    return response.data.data || [];
+  },
+
+  async updateBookingStatus(id: string, status: string, meetingLink?: string): Promise<Booking> {
+      const response = await apiClient.put<ApiResponse<Booking>>(`/bookings/${id}`, { status, meetingLink });
+      return response.data.data!;
+  },
+
+
+
   async getExamDetails(id: string): Promise<ExamModel> {
     const response = await apiClient.get<ApiResponse<ExamModel>>(`/exams/${id}`);
     return response.data.data!;
@@ -862,18 +941,24 @@ export const api = {
     return this.getAttemptById(id);
   },
 
-  async sendMentorMessage(mentorId: string, message: string) {
-    return {
-      id: Date.now().toString(),
-      mentorId,
-      message,
-      createdAt: new Date().toISOString(),
-      status: "pending" as const,
-    };
+  async sendMentorMessage(recipientId: string, subject: string, content: string): Promise<Message> {
+    const response = await apiClient.post<ApiResponse<Message>>("/messages", { recipientId, subject, content });
+    return response.data.data!;
   },
 
-  async getMentorMessages() {
-    return [];
+  async getMyMessages(): Promise<Message[]> {
+    const response = await apiClient.get<ApiResponse<Message[]>>("/messages");
+    return response.data.data || [];
+  },
+  
+  async getSentMessages(): Promise<Message[]> {
+    const response = await apiClient.get<ApiResponse<Message[]>>("/messages/sent");
+    return response.data.data || [];
+  },
+
+  async markMessageAsRead(id: string): Promise<Message> {
+    const response = await apiClient.put<ApiResponse<Message>>(`/messages/${id}/read`);
+    return response.data.data!;
   },
 
   // ==========================================
