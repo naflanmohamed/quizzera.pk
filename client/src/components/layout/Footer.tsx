@@ -15,6 +15,7 @@ const footerLinks = {
     { name: "Careers", href: "/careers" },
     { name: "Blog", href: "/blog" },
     { name: "Contact", href: "/contact" },
+    { name: "Mentisera", href: "https://www.mentisera.pk/" },
   ],
   support: [
     { name: "Help Center", href: "/help" },
