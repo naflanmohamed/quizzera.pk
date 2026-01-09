@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   Timer, 
@@ -134,6 +136,14 @@ export function FeaturesSection() {
               </Card>
             );
           })}
+        </div>
+
+        <div className="mt-16 text-center">
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/features">
+              View All Features
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

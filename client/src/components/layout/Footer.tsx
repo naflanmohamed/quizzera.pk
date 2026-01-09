@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Facebook, Twitter, Linkedin, Instagram, Mail } from "lucide-react";
+import { BookOpen, Facebook, Twitter, Linkedin, Instagram, Mail, Youtube, XIcon } from "lucide-react";
 
 const footerLinks = {
   product: [
@@ -32,10 +32,11 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Facebook, href: "#", label: "Facebook" },
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
-  { icon: Instagram, href: "#", label: "Instagram" },
+  { icon: Facebook, href: "https://facebook.com/mentiserapk", label: "Facebook" },
+  { icon: XIcon, href: "https://twitter.com/mentiserapk", label: "X" },
+  { icon: Linkedin, href: "https://linkedin.com/company/mentisera", label: "LinkedIn" },
+  { icon: Instagram, href: "https://instagram.com/mentiserapk", label: "Instagram" },
+  { icon: Youtube, href: "https://youtube.com/@mentiserapk", label: "Youtube" },
 ];
 
 export function Footer() {

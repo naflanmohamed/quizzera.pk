@@ -27,6 +27,7 @@ const navLinks = [
   { name: "Mentors", href: "/mentors" },
   { name: "Resources", href: "/resources" },
   { name: "Blog", href: "/blog" },
+  { name: "Pricing", href: "/pricing" },
 ];
 
 export function Navbar() {

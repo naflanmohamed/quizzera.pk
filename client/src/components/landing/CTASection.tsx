@@ -59,13 +59,13 @@ export function CTASection() {
                   <div className="relative bg-primary-foreground/20 backdrop-blur-sm rounded-2xl p-8 border border-primary-foreground/20">
                     <div className="text-center">
                       <div className="text-6xl font-extrabold text-primary-foreground mb-2">
-                        100%
+                        Start
                       </div>
                       <div className="text-xl font-semibold text-primary-foreground/90 mb-4">
-                        Free Forever
+                        Free Today
                       </div>
                       <div className="text-sm text-primary-foreground/70">
-                        No hidden charges
+                        Upgrade anytime
                       </div>
                     </div>
                   </div>

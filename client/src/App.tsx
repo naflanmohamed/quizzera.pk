@@ -21,6 +21,20 @@ import NotFound from "./pages/NotFound";
 import Resources from "./pages/Resources";
 import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import RefundPolicy from "./pages/RefundPolicy";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import MobileApp from "./pages/MobileApp";
+import Careers from "./pages/Careers";
+import HelpCenter from "./pages/HelpCenter";
+import FAQ from "./pages/FAQ";
+import Community from "./pages/Community";
+import Feedback from "./pages/Feedback";
+import CookiePolicy from "./pages/CookiePolicy";
 
 // Dashboard pages
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -71,7 +85,24 @@ const App = () => (
               <Route path="/quizzes" element={<Quizzes />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
+              <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogDetail />} />
+              
+              {/* Informational Pages */}
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/refund" element={<RefundPolicy />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/app" element={<MobileApp />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/cookies" element={<CookiePolicy />} />
               
               {/* Quiz Routes */}
               <Route path="/quiz/:id" element={<QuizDetail />} />
