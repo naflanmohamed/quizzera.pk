@@ -20,23 +20,28 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-const sidebarItems = [
-  { icon: Home, label: "Dashboard", href: "/dashboard" },
-  { icon: BookOpen, label: "My Exams", href: "/dashboard/exams" },
-  { icon: FileText, label: "My Quizzes", href: "/dashboard/quizzes" },
-  { icon: Calendar, label: "My Sessions", href: "/dashboard/my-bookings" },
-  { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
-  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
-  { icon: Users, label: "Mentors", href: "/dashboard/mentors" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-];
-
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { toast } = useToast();
+
+  const isMentor = user?.role === 'instructor' || (user?.roles && Array.isArray(user.roles) && user.roles.includes('mentor'));
+
+  const items = [
+    { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: BookOpen, label: "My Exams", href: "/dashboard/exams" },
+    { icon: FileText, label: "My Quiz Bank", href: "/dashboard/quizzes" },
+    { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
+    { icon: Users, label: "Mentors", href: "/dashboard/mentors" },
+    { icon: Calendar, label: "My Sessions", href: "/dashboard/my-bookings" },
+    // Show Messages ONLY if NOT a mentor
+    ...(!isMentor ? [{ icon: MessageSquare, label: "Messages", href: "/dashboard/messages" }] : []),
+    // Show Mentor Dashboard ONLY if IS a mentor
+    ...(isMentor ? [{ icon: BookOpen, label: "Mentor Dashboard", href: "/dashboard/mentor" }] : []),
+    { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -62,12 +67,13 @@ export function DashboardLayout() {
     const path = location.pathname;
     if (path === "/dashboard") return "Dashboard";
     if (path.includes("/exams")) return "My Exams";
-    if (path.includes("/quizzes")) return "My Quizzes";
+    if (path.includes("/quizzes")) return "My Quiz Bank";
     if (path.includes("/my-bookings")) return "My Sessions";
     if (path.includes("/messages")) return "Messages";
     if (path.includes("/analytics")) return "Analytics";
     if (path.includes("/mentors")) return "Mentors";
     if (path.includes("/settings")) return "Settings";
+    if (path.includes("/mentor")) return "Mentor Dashboard";
     return "Dashboard";
   };
 
@@ -88,7 +94,7 @@ export function DashboardLayout() {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {sidebarItems.map((item) => {
+            {items.map((item) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
               
@@ -108,24 +114,6 @@ export function DashboardLayout() {
                 </Link>
               );
             })}
-            
-            {/* Mentor Specific Link */}
-            {(user?.role === 'instructor' || (user?.roles && Array.isArray(user.roles) && user.roles.includes('mentor'))) && (
-              <>
-                <Link
-                    to="/dashboard/mentor-bookings"
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      location.pathname === "/dashboard/mentor-bookings"
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Calendar className="w-5 h-5" />
-                    Booking Requests
-                </Link>
-              </>
-            )}
           </nav>
 
           {/* User Section */}

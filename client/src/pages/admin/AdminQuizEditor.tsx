@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckCircle2, Circle, FileUp, Download } from "lucide-react";
+import Papa from "papaparse";
 import {
   Card,
   CardContent,
@@ -37,7 +38,9 @@ export default function AdminQuizEditor() {
   
   // Question Form State
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
-  const [newQuestion, setNewQuestion] = useState({
+  const [isCSVDialogOpen, setIsCSVDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [newQuestion, setNewQuestion] = useState<Omit<Question, "_id" | "quiz" | "order">>({
     question: "",
     questionType: "single",
     marks: 1,
@@ -168,6 +171,112 @@ export default function AdminQuizEditor() {
     setNewQuestion({ ...newQuestion, options: updatedOptions });
   };
 
+  const handleDownloadTemplate = () => {
+    const csvContent = "Question Text,Option 1,Option 2,Option 3,Option 4,Correct Option (1-4),Explanation,Marks,Difficulty\n" +
+                       "What is the capital of France?,Paris,London,Berlin,Madrid,1,Paris is the capital.,1,easy\n" + 
+                       "Which are programming languages?,Python,HTML,Java,Banana,1|3,Python and Java are languages.,2,medium";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "quiz_import_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+            try {
+                const parsedQuestions: any[] = [];
+                const errors: string[] = [];
+
+                for (let i = 0; i < results.data.length; i++) {
+                    const row: any = results.data[i];
+                    // Basic validation
+                    if (!row['Question Text'] || !row['Correct Option (1-4)']) {
+                        errors.push(`Row ${i + 2}: Missing Question or Correct Option`);
+                        continue;
+                    }
+
+                    const options = [
+                        { text: row['Option 1'] || "", isCorrect: false, id: "1" },
+                        { text: row['Option 2'] || "", isCorrect: false, id: "2" },
+                        { text: row['Option 3'] || "", isCorrect: false, id: "3" },
+                        { text: row['Option 4'] || "", isCorrect: false, id: "4" }
+                    ].filter(o => o.text.trim() !== "");
+
+                    if (options.length < 2) {
+                        errors.push(`Row ${i + 2}: At least 2 options required`);
+                        continue;
+                    }
+
+                    const correctIndices = row['Correct Option (1-4)'].toString().split('|').map((s: string) => s.trim());
+                    
+                    let hasCorrect = false;
+                    options.forEach((opt, idx) => {
+                       if (correctIndices.includes((idx + 1).toString())) {
+                           opt.isCorrect = true;
+                           hasCorrect = true;
+                       }
+                    });
+
+                    if (!hasCorrect) {
+                         errors.push(`Row ${i + 2}: Invalid Correct Option (must match 1-4)`);
+                         continue;
+                    }
+
+                    parsedQuestions.push({
+                        question: row['Question Text'],
+                        questionType: correctIndices.length > 1 ? 'multiple' : 'single',
+                        options: options,
+                        correctAnswers: options.filter(o => o.isCorrect).map(o => o.id), // Add correctAnswers for backend
+                        explanation: row['Explanation'] || "",
+                        marks: parseInt(row['Marks']) || 1,
+                        difficulty: row['Difficulty']?.toLowerCase() || 'medium',
+                        quiz: id 
+                    });
+                }
+
+                if (errors.length > 0) {
+                    toast.error(`Found errors in CSV: \n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? '...' : ''}`);
+                    if(parsedQuestions.length === 0) return; // Stop if nothing valid
+                }
+
+                if (parsedQuestions.length > 0) {
+                    await api.bulkCreateQuestions(id!, parsedQuestions);
+                    toast.success(`Successfully imported ${parsedQuestions.length} questions`);
+                    const qs = await api.getQuestions(id!);
+                    setQuestions(qs);
+                    setIsCSVDialogOpen(false);
+                }
+
+            } catch (err) {
+                console.error("CSV Import Error:", err);
+                toast.error("Failed to process CSV file");
+            } finally {
+                setIsImporting(false);
+                // Reset file input
+                e.target.value = '';
+            }
+        },
+        error: (err) => {
+            console.error("Papa Parse Error:", err);
+            toast.error("Failed to parse CSV file");
+            setIsImporting(false);
+        }
+    });
+  };
+
   if (isLoading || !quiz) {
     return <div className="p-8">Loading...</div>;
   }
@@ -265,10 +374,47 @@ export default function AdminQuizEditor() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
              <h2 className="text-xl font-semibold">Questions ({questions.length})</h2>
-             <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-               <DialogTrigger asChild>
-                 <Button><Plus className="w-4 h-4 mr-2" /> Add Question</Button>
-               </DialogTrigger>
+             <div className="flex gap-2">
+                 <Dialog open={isCSVDialogOpen} onOpenChange={setIsCSVDialogOpen}>
+                     <DialogTrigger asChild>
+                         <Button variant="outline"><FileUp className="w-4 h-4 mr-2"/> Import CSV</Button>
+                     </DialogTrigger>
+                     <DialogContent>
+                         <DialogHeader>
+                             <DialogTitle>Import Questions from CSV</DialogTitle>
+                         </DialogHeader>
+                         <div className="space-y-4 py-4">
+                             <div className="text-sm text-muted-foreground">
+                                 <p>Upload a CSV file to bulk import questions. The file must follow the specific template format.</p>
+                             </div>
+                             <div className="flex flex-col gap-2">
+                                 <Button variant="secondary" onClick={handleDownloadTemplate} className="w-full">
+                                     <Download className="w-4 h-4 mr-2" /> Download Template
+                                 </Button>
+                             </div>
+                             <div className="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center space-y-2">
+                                 <FileUp className="w-8 h-8 text-muted-foreground" />
+                                 <p className="text-sm font-medium">Drag & drop or Click to Upload</p>
+                                 <Input 
+                                    type="file" 
+                                    accept=".csv"
+                                    className="hidden" 
+                                    id="csv-upload"
+                                    onChange={handleCSVUpload}
+                                    disabled={isImporting}
+                                 />
+                                 <Button disabled={isImporting} variant="default" onClick={() => document.getElementById('csv-upload')?.click()}>
+                                     {isImporting ? 'Importing...' : 'Select CSV File'}
+                                 </Button>
+                             </div>
+                         </div>
+                     </DialogContent>
+                 </Dialog>
+
+                 <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+                   <DialogTrigger asChild>
+                     <Button><Plus className="w-4 h-4 mr-2" /> Add Question</Button>
+                   </DialogTrigger>
                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                  <DialogHeader>
                    <DialogTitle>Add New Question</DialogTitle>
@@ -330,6 +476,7 @@ export default function AdminQuizEditor() {
                </DialogContent>
              </Dialog>
           </div>
+         </div>
 
           <div className="space-y-4">
              {questions.length === 0 ? (

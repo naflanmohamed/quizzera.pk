@@ -117,7 +117,7 @@ const Quizzes = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search quizzes..."
+                  placeholder="Search quiz bank..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 h-12 bg-transparent border-transparent focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
@@ -183,7 +183,7 @@ const Quizzes = () => {
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-primary" />
-              Available Quizzes
+              Quiz Bank
             </h2>
              {!quizzesLoading && (
                 <Badge variant="outline" className="px-4 py-1.5 text-sm font-medium">

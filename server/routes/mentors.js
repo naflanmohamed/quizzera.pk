@@ -6,17 +6,21 @@ const {
   getMentorById,
   getApplications,
   updateApplicationStatus,
-  deleteMentor
+
+  deleteMentor,
+  getMine
 } = require('../controllers/mentorController');
 
 const { protect, authorize } = require('../middleware/auth');
 
 // Public routes
 router.get('/', getMentors);
-router.get('/:id', getMentorById);
+
 
 // Protected routes
+router.get('/me', protect, getMine);
 router.post('/apply', protect, applyMentor);
+router.get('/:id', getMentorById);
 
 // Admin routes
 router.get('/admin/applications', protect, authorize('admin'), getApplications);

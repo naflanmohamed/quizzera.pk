@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api, ExamModel, Quiz } from "@/services/api";
+import { api, ExamModel, Quiz, Category } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,15 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import {
     Select,
     SelectContent,
@@ -33,16 +42,24 @@ export default function AdminExamEditor() {
     const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
     const [selectedQuizId, setSelectedQuizId] = useState<string>("");
 
+    // Category selection state
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+    const [isAddingByCategory, setIsAddingByCategory] = useState(false);
+
     useEffect(() => {
         const loadExam = async () => {
             if (!id) return;
             try {
-                const [examData, quizzesData] = await Promise.all([
+                const [examData, quizzesData, categoriesData] = await Promise.all([
                     api.getExamDetails(id),
-                    api.getQuizzes() // Get all quizzes to select from
+                    api.getQuizzes(), // Get all quizzes to select from
+                    api.getCategories()
                 ]);
                 setExam(examData);
                 setAllQuizzes(quizzesData);
+                setCategories(categoriesData);
             } catch (error) {
                 console.error("Error loading exam:", error);
                 toast.error("Failed to load exam details");
@@ -108,6 +125,43 @@ export default function AdminExamEditor() {
         // Update local state
         setExam({ ...exam, quizzes: newQuizzes });
         setSelectedQuizId("");
+    };
+
+    const handleAddByCategory = async () => {
+        if (!selectedCategoryId || !exam) return;
+        setIsAddingByCategory(true);
+        try {
+            const quizzesToAdd = await api.getQuizzes({ category: selectedCategoryId });
+            
+            // Filter out existing
+            const existingIds = new Set(exam.quizzes.map(q => typeof q.quiz === 'string' ? q.quiz : q.quiz._id));
+            const newQuizzes = quizzesToAdd.filter(q => !existingIds.has(q._id));
+            
+            if (newQuizzes.length === 0) {
+                toast.info("All quizzes from this category are already added or no quizzes found.");
+                setIsCategoryDialogOpen(false);
+                return;
+            }
+
+            const quizzesWithOrder = newQuizzes.map((q, idx) => ({
+                quiz: q,
+                order: exam.quizzes.length + idx,
+                _id: "temp_" + Date.now() + idx
+            }));
+
+            setExam({
+                ...exam,
+                quizzes: [...exam.quizzes, ...quizzesWithOrder]
+            });
+            toast.success(`Added ${newQuizzes.length} quizzes from category`);
+            setIsCategoryDialogOpen(false);
+            setSelectedCategoryId("");
+        } catch (error) {
+            console.error("Error adding quizzes by category:", error);
+            toast.error("Failed to add quizzes");
+        } finally {
+            setIsAddingByCategory(false);
+        }
     };
 
     const handleRemoveQuiz = (index: number) => {
@@ -190,6 +244,43 @@ export default function AdminExamEditor() {
                                 <Button onClick={handleAddQuiz} disabled={!selectedQuizId}>
                                     <Plus className="mr-2 h-4 w-4" /> Add
                                 </Button>
+                                
+                                <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="secondary">
+                                            Bulk Add by Category
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Add Quizzes by Category</DialogTitle>
+                                            <DialogDescription>
+                                                Select a category to add all its quizzes to this exam. Duplicate quizzes will be skipped.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                            <Label>Select Category</Label>
+                                            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Choose category..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {categories.map(c => (
+                                                        <SelectItem key={c._id} value={c._id}>
+                                                            {c.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>Cancel</Button>
+                                            <Button onClick={handleAddByCategory} disabled={!selectedCategoryId || isAddingByCategory}>
+                                                {isAddingByCategory ? "Adding..." : "Add Quizzes"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
 
                             <div className="space-y-2 mt-4">

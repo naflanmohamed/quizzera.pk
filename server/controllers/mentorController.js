@@ -20,8 +20,26 @@ exports.applyMentor = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error('You are already a mentor.');
     }
-    // If rejected, could allow re-apply or update. allow update for now implicitly by not blocking?
-    // Let's block for now to keep simple otherwise need update logic
+    
+    // If rejected, allow re-apply by updating the existing profile
+    if (existingProfile.status === 'rejected') {
+        existingProfile.bio = bio;
+        existingProfile.expertise = expertise;
+        existingProfile.experience = experience;
+        existingProfile.hourlyRate = hourlyRate;
+        existingProfile.linkedin = linkedin;
+        existingProfile.portfolio = portfolio;
+        existingProfile.availability = availability;
+        existingProfile.status = 'pending';
+        
+        const updatedProfile = await existingProfile.save();
+        
+        res.status(200).json({
+            success: true,
+            data: updatedProfile
+        });
+        return;
+    }
   }
 
   const mentorProfile = await MentorProfile.create({
@@ -165,5 +183,24 @@ exports.deleteMentor = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: {}
+  });
+});
+
+// @desc    Get current user's mentor profile
+// @route   GET /api/mentors/me
+// @access  Private
+exports.getMine = asyncHandler(async (req, res) => {
+  const mentorProfile = await MentorProfile.findOne({ user: req.user.id });
+
+  if (!mentorProfile) {
+    return res.status(200).json({
+      success: true,
+      data: null // Not a mentor yet
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: mentorProfile
   });
 });

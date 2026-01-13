@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -49,6 +49,28 @@ export default function BecomeMentor() {
       availability: "",
     },
   });
+  
+  const [mentorStatus, setMentorStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+        try {
+            const profile = await api.getMyMentorProfile();
+            if (profile) {
+                if(profile.status === 'approved') {
+                    navigate('/dashboard/mentor');
+                    return;
+                }
+                const status = profile.status || "";
+                setMentorStatus(status); 
+                setIsSubmitted(status === 'pending');
+            }
+        } catch(e) {
+            console.error("Failed to check status", e);
+        }
+    }
+    checkStatus();
+  }, [navigate]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -100,6 +122,12 @@ export default function BecomeMentor() {
         <p className="text-muted-foreground mt-2">
           Share your knowledge and help others succeed. Fill out the application below.
         </p>
+        
+        {mentorStatus === 'rejected' && (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-lg mt-4 border border-destructive/20">
+                <strong>Application Rejected:</strong> Your previous application was not approved. You may review your information and try again.
+            </div>
+        )}
       </div>
 
       <Card>

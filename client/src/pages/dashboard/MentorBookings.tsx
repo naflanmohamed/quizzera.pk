@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function MentorBookings() {
+export default function MentorBookings({ mode = 'all' }: { mode?: 'requests' | 'sessions' | 'all' }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -85,20 +85,32 @@ export default function MentorBookings() {
     );
   }
 
+  const filteredBookings = bookings.filter(b => {
+      if (mode === 'requests') return b.status === 'pending';
+      if (mode === 'sessions') return ['confirmed', 'completed', 'cancelled'].includes(b.status);
+      return true;
+  });
+
   return (
     <div className="space-y-6">
+      {!mode || mode === 'all' && (
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Booking Requests</h1>
         <p className="text-muted-foreground mt-2">
           Manage your upcoming mentorship sessions and requests.
         </p>
       </div>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>All Bookings</CardTitle>
+          <CardTitle>
+            {mode === 'requests' ? 'Pending Requests' : mode === 'sessions' ? 'My Sessions' : 'All Bookings'}
+          </CardTitle>
           <CardDescription>
-            You have {bookings.filter(b => b.status === 'pending').length} pending requests.
+            {mode === 'requests' 
+                ? `You have ${filteredBookings.length} pending requests.` 
+                : `Showing ${filteredBookings.length} sessions.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,14 +124,14 @@ export default function MentorBookings() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.length === 0 ? (
+              {filteredBookings.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No bookings found.
+                    No {mode === 'requests' ? 'pending requests' : 'bookings'} found.
                   </TableCell>
                 </TableRow>
               ) : (
-                bookings.map((booking) => {
+                filteredBookings.map((booking) => {
                   const student = getStudent(booking);
                   return (
                     <TableRow key={booking._id}>

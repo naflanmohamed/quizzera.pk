@@ -33,7 +33,7 @@ export const AdminLayout = () => {
         { icon: Users, label: "Users", href: "/admin/users" },
         { icon: Users, label: "Mentors", href: "/admin/mentors" },
         { icon: FolderTree, label: "Categories", href: "/admin/categories" },
-        { icon: BookOpen, label: "Quizzes", href: "/admin/quizzes" },
+        { icon: BookOpen, label: "Quiz Bank", href: "/admin/quizzes" },
         { icon: FileQuestion, label: "Exams", href: "/admin/exams" },
         { icon: FileUp, label: "Resources", href: "/admin/resources" },
         { icon: FileText, label: "Blogs", href: "/admin/blogs" },

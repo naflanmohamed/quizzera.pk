@@ -272,7 +272,6 @@ export interface Booking {
   meetingLink?: string;
   topic: string;
   createdAt: string;
-  createdAt: string;
   updatedAt: string;
 }
 
@@ -587,7 +586,7 @@ export const api = {
     return response.data.data!;
   },
 
-  async updateQuiz(id: string, data: Quiz): Promise<Quiz> {
+  async updateQuiz(id: string, data: Partial<Quiz>): Promise<Quiz> {
     const response = await apiClient.put<ApiResponse<Quiz>>(`/quizzes/${id}`, data);
     return response.data.data!;
   },
@@ -612,12 +611,17 @@ export const api = {
     return response.data.data || [];
   },
   
-  async createQuestion(quizId: string, data: Question): Promise<Question> {
+  async createQuestion(quizId: string, data: Omit<Question, "_id" | "quiz" | "order"> & { quiz?: string; order?: number }): Promise<Question> {
     const response = await apiClient.post<ApiResponse<Question>>(`/quizzes/${quizId}/questions`, data);
     return response.data.data!;
   },
 
-  async updateQuestion(id: string, data: Question): Promise<Question> {
+  async bulkCreateQuestions(quizId: string, questions: any[]): Promise<Question[]> {
+    const response = await apiClient.post<ApiResponse<Question[]>>(`/quizzes/${quizId}/questions/bulk`, { questions });
+    return response.data.data || [];
+  },
+
+  async updateQuestion(id: string, data: Partial<Question>): Promise<Question> {
     const response = await apiClient.put<ApiResponse<Question>>(`/questions/${id}`, data);
     return response.data.data!;
   },
@@ -813,6 +817,11 @@ export const api = {
   }): Promise<{ mentors: Mentor[]; pagination?: ApiResponse<Mentor[]>["pagination"] }> {
     const response = await apiClient.get<ApiResponse<Mentor[]>>("/mentors", { params });
     return { mentors: response.data.data || [], pagination: response.data.pagination };
+  },
+
+  async getMyMentorProfile(): Promise<Mentor | null> {
+    const response = await apiClient.get<ApiResponse<Mentor>>("/mentors/me");
+    return response.data.data || null;
   },
 
   async getMentorById(id: string): Promise<Mentor> {

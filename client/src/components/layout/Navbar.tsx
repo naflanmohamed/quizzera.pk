@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Exams", href: "/exams" },
-  { name: "Quizzes", href: "/quizzes" },
+  { name: "Quiz Bank", href: "/quizzes" },
   { name: "Mentors", href: "/mentors" },
   { name: "Resources", href: "/resources" },
   { name: "Blog", href: "/blog" },

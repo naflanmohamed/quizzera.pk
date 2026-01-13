@@ -251,6 +251,11 @@ const bulkCreateQuestions = async (req, res) => {
     // Insert all questions
     const createdQuestions = await Question.insertMany(preparedQuestions);
     
+    // Manually update quiz question count since insertMany doesn't trigger post('save') hooks
+    await Quiz.findByIdAndUpdate(quizId, { 
+      $inc: { totalQuestions: createdQuestions.length }
+    });
+    
     res.status(201).json({
       success: true,
       count: createdQuestions.length,

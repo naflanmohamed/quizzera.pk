@@ -31,9 +31,9 @@ router.get('/:quizId/leaderboard', getLeaderboard);
 
 // Protected routes - Quiz CRUD
 router.post('/', protect, authorize('admin', 'instructor'), createQuiz);
+router.put('/:id/publish', protect, authorize('admin', 'instructor'), publishQuiz);
 router.put('/:id', protect, authorize('admin', 'instructor'), updateQuiz);
 router.delete('/:id', protect, authorize('admin'), deleteQuiz);
-router.put('/:id/publish', protect, authorize('admin', 'instructor'), publishQuiz);
 
 // Protected routes - Questions
 router.get('/:quizId/questions', protect, getQuestions);

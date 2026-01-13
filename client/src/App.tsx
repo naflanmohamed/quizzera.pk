@@ -48,6 +48,7 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 import MentorBookings from "./pages/dashboard/MentorBookings";
 import MentorMessages from "./pages/dashboard/MentorMessages";
 import StudentBookings from "./pages/dashboard/StudentBookings";
+import MentorDashboard from "./pages/dashboard/MentorDashboard";
 
 // Admin pages
 import { AdminRoute } from "@/components/AdminRoute";
@@ -122,6 +123,7 @@ const App = () => (
                 <Route path="my-bookings" element={<StudentBookings />} />
                 <Route path="messages" element={<MentorMessages />} />
                 <Route path="become-mentor" element={<BecomeMentor />} />
+                <Route path="mentor" element={<MentorDashboard />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
 
