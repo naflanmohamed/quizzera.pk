@@ -11,7 +11,6 @@ import {
   X,
   Home,
   FileText,
-  Users,
   Settings,
   Calendar,
   MessageSquare,
@@ -45,7 +44,7 @@ export function DashboardLayout() {
         { icon: BookOpen, label: "My Exams", href: "/dashboard/exams" },
         { icon: FileText, label: "My Quiz Bank", href: "/dashboard/quizzes" },
         { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
-        { icon: Users, label: "Mentors", href: "/dashboard/mentors" },
+        
         {
           icon: Calendar,
           label: "My Sessions",
@@ -88,7 +87,6 @@ export function DashboardLayout() {
     if (path.includes("/my-bookings")) return "My Sessions";
     if (path.includes("/messages")) return "Messages";
     if (path.includes("/analytics")) return "Analytics";
-    if (path.includes("/mentors")) return "Mentors";
     if (path.includes("/settings")) return "Settings";
     if (path.includes("/mentor")) return "Mentor Dashboard";
     return "Dashboard";
