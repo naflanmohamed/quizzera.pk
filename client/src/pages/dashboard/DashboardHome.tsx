@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode  } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -176,6 +176,15 @@ const TrendIcon = ({ trend }: { trend: "up" | "down" | "stable" }) => {
 
 const DashboardHome = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // If user is a mentor, redirect to mentor dashboard
+    const isMentor = user?.role === 'instructor' || (user?.roles && Array.isArray(user.roles) && user.roles.includes('mentor'));
+    if (isMentor) {
+      navigate('/dashboard/mentor');
+    }
+  }, [user, navigate]);
 
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [attempts, setAttempts] = useState<any[]>([]);

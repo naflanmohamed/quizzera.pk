@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  BookOpen, 
-  BarChart3, 
+import {
+  BookOpen,
+  BarChart3,
   Bell,
   LogOut,
   User,
@@ -14,7 +14,7 @@ import {
   Users,
   Settings,
   Calendar,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -27,28 +27,45 @@ export function DashboardLayout() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
-  const isMentor = user?.role === 'instructor' || (user?.roles && Array.isArray(user.roles) && user.roles.includes('mentor'));
+  const isMentor =
+    user?.role === "instructor" ||
+    (user?.roles && Array.isArray(user.roles) && user.roles.includes("mentor"));
 
-  const items = [
-    { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: BookOpen, label: "My Exams", href: "/dashboard/exams" },
-    { icon: FileText, label: "My Quiz Bank", href: "/dashboard/quizzes" },
-    { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
-    { icon: Users, label: "Mentors", href: "/dashboard/mentors" },
-    { icon: Calendar, label: "My Sessions", href: "/dashboard/my-bookings" },
-    // Show Messages ONLY if NOT a mentor
-    ...(!isMentor ? [{ icon: MessageSquare, label: "Messages", href: "/dashboard/messages" }] : []),
-    // Show Mentor Dashboard ONLY if IS a mentor
-    ...(isMentor ? [{ icon: BookOpen, label: "Mentor Dashboard", href: "/dashboard/mentor" }] : []),
-    { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-  ];
+  const items = isMentor
+    ? [
+        {
+          icon: BookOpen,
+          label: "Mentor Dashboard",
+          href: "/dashboard/mentor",
+        },
+        { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+      ]
+    : [
+        { icon: Home, label: "Dashboard", href: "/dashboard" },
+        { icon: BookOpen, label: "My Exams", href: "/dashboard/exams" },
+        { icon: FileText, label: "My Quiz Bank", href: "/dashboard/quizzes" },
+        { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
+        { icon: Users, label: "Mentors", href: "/dashboard/mentors" },
+        {
+          icon: Calendar,
+          label: "My Sessions",
+          href: "/dashboard/my-bookings",
+        },
+        { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
+        { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+      ];
 
   useEffect(() => {
     if (user) {
-      const isAdmin = user.role === 'admin' || (user.roles && (Array.isArray(user.roles) ? user.roles.includes('admin') : user.roles === 'admin'));
-      
+      const isAdmin =
+        user.role === "admin" ||
+        (user.roles &&
+          (Array.isArray(user.roles)
+            ? user.roles.includes("admin")
+            : user.roles === "admin"));
+
       if (isAdmin) {
-        navigate('/admin', { replace: true });
+        navigate("/admin", { replace: true });
       }
     }
   }, [user, navigate]);
@@ -80,7 +97,9 @@ export function DashboardLayout() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-border">
@@ -88,16 +107,20 @@ export function DashboardLayout() {
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">Quizzera</span>
+              <span className="text-xl font-bold text-foreground">
+                Quizzera
+              </span>
             </Link>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {items.map((item) => {
-              const isActive = location.pathname === item.href || 
-                (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
-              
+              const isActive =
+                location.pathname === item.href ||
+                (item.href !== "/dashboard" &&
+                  location.pathname.startsWith(item.href));
+
               return (
                 <Link
                   key={item.label}
@@ -123,12 +146,16 @@ export function DashboardLayout() {
                 {user?.name?.charAt(0) || "U"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{user?.name || "User"}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.name || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email || ""}
+                </p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-start text-muted-foreground mt-2"
               onClick={handleLogout}
             >
@@ -141,7 +168,7 @@ export function DashboardLayout() {
 
       {/* Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -157,9 +184,15 @@ export function DashboardLayout() {
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-lg hover:bg-muted"
               >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {sidebarOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
               </button>
-              <h1 className="text-xl font-bold text-foreground">{getPageTitle()}</h1>
+              <h1 className="text-xl font-bold text-foreground">
+                {getPageTitle()}
+              </h1>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="relative">
