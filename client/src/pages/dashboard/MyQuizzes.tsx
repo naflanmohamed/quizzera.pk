@@ -31,13 +31,32 @@ import {
 import { api, QuizAttempt, Exam } from "@/services/api";
 
 const MyQuizzes = () => {
-  const [attempts, setAttempts] = useState<any[]>([]);
-  const [exams, setExams] = useState<Exam[]>([]);
+  // Define a local interface for the mapped attempt to strictly type the state
+  interface ComponentQuizAttempt {
+    id: string;
+    _id?: string; // Keep original reference if needed
+    quizName: string;
+    examName: string;
+    examId: string;
+    score: number;
+    correctAnswers: number;
+    incorrectAnswers: number;
+    skipped: number;
+    totalQuestions: number;
+    topics: string[];
+    completedAt: string;
+    timeTaken: number;
+  }
+
+  const [attempts, setAttempts] = useState<ComponentQuizAttempt[]>([]);
+  // api.getExams returns Quiz[], not the legacy Exam[] interface. 
+  // We use any[] temporarily or Quiz[] if we import it, but lets rely on mapping or just simpler type
+  const [exams, setExams] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExam, setSelectedExam] = useState<string>("all");
   const [scoreFilter, setScoreFilter] = useState<string>("all");
-  const [selectedAttempt, setSelectedAttempt] = useState<QuizAttempt | null>(null);
+  const [selectedAttempt, setSelectedAttempt] = useState<ComponentQuizAttempt | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,12 +67,11 @@ const MyQuizzes = () => {
         ]);
         
         // Map API response to match component expectations
-        // The API returns nested objects (quiz.title, score.percentage) but component expects flattened properties
-        const mappedAttempts = (attemptsData as any[]).map(a => ({
-          ...a,
-          id: a._id,
+        const mappedAttempts: ComponentQuizAttempt[] = (attemptsData as any[]).map(a => ({
+          id: a._id || a.id,
+          _id: a._id,
           quizName: a.quiz?.title || a.quizName || "Untitled Quiz",
-          examName: a.examName || "General", // Placeholder as exam data might not be linked directly
+          examName: a.examName || "General",
           examId: a.examId || "all",
           score: typeof a.score === 'object' ? (a.score?.percentage || 0) : (a.score || 0),
           correctAnswers: typeof a.score === 'object' ? (a.score?.correct || 0) : (a.correctAnswers || 0),
@@ -91,7 +109,8 @@ const MyQuizzes = () => {
     return matchesSearch && matchesExam && matchesScore;
   });
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number | undefined) => {
+    if (seconds === undefined) return "0s";
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
@@ -162,8 +181,8 @@ const MyQuizzes = () => {
           <SelectContent>
             <SelectItem value="all">All Exams</SelectItem>
             {exams.map((exam) => (
-              <SelectItem key={exam.id} value={exam.id}>
-                {exam.name}
+              <SelectItem key={exam._id || exam.id} value={exam._id || exam.id}>
+                {exam.title || exam.name || "Untitled"}
               </SelectItem>
             ))}
           </SelectContent>
@@ -217,7 +236,7 @@ const MyQuizzes = () => {
                     <h3 className="font-semibold text-foreground truncate">{attempt.quizName}</h3>
                     <p className="text-sm text-muted-foreground">{attempt.examName}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {attempt.topics.map((topic) => (
+                      {attempt.topics.map((topic: string) => (
                         <Badge key={topic} variant="secondary" className="text-xs">
                           {topic}
                         </Badge>
@@ -304,7 +323,7 @@ const MyQuizzes = () => {
               <div>
                 <p className="text-sm font-medium text-foreground mb-2">Topics Covered</p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedAttempt.topics.map((topic) => (
+                  {selectedAttempt.topics.map((topic: string) => (
                     <Badge key={topic} variant="secondary">{topic}</Badge>
                   ))}
                 </div>
