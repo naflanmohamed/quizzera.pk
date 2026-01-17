@@ -139,6 +139,16 @@ const quizSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+
+    // Metadata
+    appearedIn: {
+      type: String,
+      default: '' 
+    },
+    customAuthor: {
+      type: String,
+      default: '' // "Who added"
+    },
     
     // Who created this quiz
     createdBy: {

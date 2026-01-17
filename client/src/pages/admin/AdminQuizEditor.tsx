@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api, Quiz, Category, Question } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,9 @@ export default function AdminQuizEditor() {
         difficulty: quiz.difficulty,
         duration: quiz.duration,
         passingScore: quiz.passingScore,
-        isPremium: quiz.isPremium
+        isPremium: quiz.isPremium,
+        appearedIn: quiz.appearedIn,
+        customAuthor: quiz.customAuthor
       });
       toast.success("Quiz updated details saved");
     } catch{
@@ -187,7 +189,7 @@ export default function AdminQuizEditor() {
     document.body.removeChild(link);
   };
 
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCSVUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -361,23 +363,13 @@ export default function AdminQuizEditor() {
                  <Label>Description</Label>
                  <Textarea value={quiz.description} onChange={e => setQuiz({...quiz, description: e.target.value})} />
               </div>
-              <div className="flex items-center space-x-2 pt-2">
-                 <Switch checked={quiz.isPremium} onCheckedChange={c => setQuiz({...quiz, isPremium: c})} />
-                 <Label>Premium Exclusive?</Label>
-              </div>
-              <Button type="submit" className="w-full">Save Details</Button>
-            </form>
-          </CardContent>
-        </Card>
 
-        {/* Right Column: Questions List */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-             <h2 className="text-xl font-semibold">Questions ({questions.length})</h2>
-             <div className="flex gap-2">
+               <div className="pt-2">
                  <Dialog open={isCSVDialogOpen} onOpenChange={setIsCSVDialogOpen}>
                      <DialogTrigger asChild>
-                         <Button variant="outline"><FileUp className="w-4 h-4 mr-2"/> Import CSV</Button>
+                         <Button type="button" variant="outline" className="w-full">
+                           <FileUp className="w-4 h-4 mr-2"/> Import Questions from CSV
+                         </Button>
                      </DialogTrigger>
                      <DialogContent>
                          <DialogHeader>
@@ -410,6 +402,42 @@ export default function AdminQuizEditor() {
                          </div>
                      </DialogContent>
                  </Dialog>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                     <Label>Who added QUIZ</Label>
+                     <Input 
+                        placeholder="e.g. Mentor Name" 
+                        value={quiz.customAuthor || ''} 
+                        onChange={e => setQuiz({...quiz, customAuthor: e.target.value})} 
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <Label>Appeared In (Year/Exam)</Label>
+                     <Input 
+                        placeholder="e.g. PPSC 2021" 
+                        value={quiz.appearedIn || ''} 
+                        onChange={e => setQuiz({...quiz, appearedIn: e.target.value})} 
+                     />
+                  </div>
+               </div>
+
+              <div className="flex items-center space-x-2 pt-2">
+                 <Switch checked={quiz.isPremium} onCheckedChange={c => setQuiz({...quiz, isPremium: c})} />
+                 <Label>Premium Exclusive?</Label>
+              </div>
+              <Button type="submit" className="w-full">Save Details</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Right Column: Questions List */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+             <h2 className="text-xl font-semibold">Questions ({questions.length})</h2>
+             <div className="flex gap-2">
+                 {/* CSV Import removed from here */}
 
                  <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
                    <DialogTrigger asChild>

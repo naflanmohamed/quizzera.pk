@@ -27,7 +27,7 @@ const connectDB = async () => {
 const users = [
   {
     name: 'Admin User',
-    email: 'admin@example.com',
+    email: 'admin@quizzera.com',
     password: 'password123',
     phone: '1234567890',
     role: 'admin' // Used for logic, not saved to User model directly

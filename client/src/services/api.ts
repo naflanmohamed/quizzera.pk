@@ -62,6 +62,8 @@ export interface Quiz {
   instructions?: string[];
   tags?: string[];
   status: "draft" | "published" | "archived";
+  appearedIn?: string;
+  customAuthor?: string;
   isFeatured: boolean;
   isPremium: boolean;
   totalAttempts: number;
@@ -154,6 +156,8 @@ export interface ExamModel {
   passResult: number;
   price: number;
   status: "draft" | "published" | "archived";
+  appearedIn?: string;
+  customAuthor?: string;
   isFeatured: boolean;
   startDate?: string;
   endDate?: string;

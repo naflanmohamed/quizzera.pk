@@ -243,12 +243,12 @@ const Quizzes = () => {
                     <CardContent className="p-6 relative">
                       {/* Icon & Category */}
                       <div className="flex items-start justify-between mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300 shadow-sm">
-                          {quiz.tags?.[0]?.charAt(0) || "Q"}
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="outline" className="text-xs bg-background/50 backdrop-blur-sm">
+                            {categoryName}
+                          </Badge>
+
                         </div>
-                        <Badge variant="outline" className="text-xs bg-background/50 backdrop-blur-sm">
-                          {categoryName}
-                        </Badge>
                       </div>
 
                       {/* Title */}
@@ -272,6 +272,20 @@ const Quizzes = () => {
                         >
                           {quiz.difficulty}
                         </Badge>
+                      </div>
+
+                      {/* Author & AppearedIn */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                         {(quiz as any).customAuthor && (
+                            <span className="text-[10px] text-muted-foreground bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                              By {(quiz as any).customAuthor}
+                            </span>
+                         )}
+                          {(quiz as any).appearedIn && (
+                            <span className="text-[10px] text-muted-foreground bg-accent/5 px-2 py-0.5 rounded-full border border-accent/10">
+                              {(quiz as any).appearedIn}
+                            </span>
+                         )}
                       </div>
                       
                       {/* Divider */}
