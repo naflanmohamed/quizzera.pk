@@ -73,7 +73,7 @@ export default function AdminCategories() {
 
     setIsSubmitting(true);
     try {
-      await api.createCategory(newCategory);
+      await api.createCategory(newCategory as any);
       toast.success("Category created successfully");
       setIsDialogOpen(false);
       setNewCategory({ name: "", description: "" });

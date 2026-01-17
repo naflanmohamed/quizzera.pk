@@ -82,7 +82,7 @@ export default function AdminQuizzes() {
 
     setIsSubmitting(true);
     try {
-      const createdQuiz = await api.createQuiz(newQuiz);
+      const createdQuiz = await api.createQuiz(newQuiz as any);
       toast.success("Quiz created successfully");
       setIsDialogOpen(false);
       

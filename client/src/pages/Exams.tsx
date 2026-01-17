@@ -199,7 +199,7 @@ const Exams = () => {
                   </Button>
                 </div>
             ) : (
-                filteredExams.map((exam, index) => (
+                filteredExams.map((exam) => (
                   <Link 
                     key={exam._id} 
                     to={`/exams/${exam._id}`}

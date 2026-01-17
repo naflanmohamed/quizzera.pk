@@ -29,7 +29,7 @@ export function useQuiz(quizId: string) {
 export function useQuizQuestions(quizId: string, attemptId?: string) {
   return useQuery({
     queryKey: ["quiz-questions", quizId, attemptId],
-    queryFn: () => api.getQuizQuestions(quizId),
+    queryFn: () => api.getQuestions(quizId),
     enabled: !!quizId && !!attemptId,
   });
 }

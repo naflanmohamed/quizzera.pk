@@ -28,7 +28,7 @@ import {
   Calendar,
   TrendingUp
 } from "lucide-react";
-import { api, QuizAttempt, Exam } from "@/services/api";
+import { api } from "@/services/api";
 
 const MyQuizzes = () => {
   // Define a local interface for the mapped attempt to strictly type the state

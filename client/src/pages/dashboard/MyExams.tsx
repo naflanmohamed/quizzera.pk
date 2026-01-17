@@ -8,14 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   PlayCircle,
-  RefreshCw,
+
   CheckCircle,
   Clock,
   Target,
   Trophy,
   AlertCircle
 } from "lucide-react";
-import { api, ExamAttempt, ExamModel } from "@/services/api";
+import { api, ExamAttempt } from "@/services/api";
 
 const MyExams = () => {
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
@@ -73,12 +73,7 @@ const MyExams = () => {
     }
   };
 
-  const formatTime = (seconds: number) => {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      if (h > 0) return `${h}h ${m}m`;
-      return `${m}m`;
-  }
+
 
   if (isLoading) {
     return (
@@ -138,12 +133,10 @@ const MyExams = () => {
             <div className="grid md:grid-cols-2 gap-4">
               {filteredAttempts.map((attempt) => {
                  // Safe access to nested exam properties
-                 const exam = attempt.exam as unknown as ExamModel;
+
                  const examTitle = typeof attempt.exam === 'object' ? (attempt.exam as any).title : 'Unknown Exam';
                  const examDesc = typeof attempt.exam === 'object' ? (attempt.exam as any).description : '';
-                 const totalQuestions = typeof attempt.exam === 'object' && (attempt.exam as any).quizzes 
-                    ? (attempt.exam as any).quizzes.reduce((acc: number, q: any) => acc + (q.quiz?.totalQuestions || 0), 0)
-                    : 0;
+
 
                  return (
                 <Card key={attempt._id} className="hover:shadow-md transition-all">

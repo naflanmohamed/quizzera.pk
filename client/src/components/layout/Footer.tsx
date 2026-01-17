@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Facebook, Twitter, Linkedin, Instagram, Mail, Youtube, XIcon } from "lucide-react";
+import { BookOpen, Facebook, Linkedin, Instagram, Mail, Youtube, XIcon } from "lucide-react";
 
 const footerLinks = {
   product: [

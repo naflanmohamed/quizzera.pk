@@ -433,7 +433,7 @@ export default function AdminQuizEditor() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                              <Label>Type</Label>
-                             <Select value={newQuestion.questionType} onValueChange={v => setNewQuestion({...newQuestion, questionType: v})}>
+                             <Select value={newQuestion.questionType} onValueChange={v => setNewQuestion({...newQuestion, questionType: v as "single" | "multiple"})}>
                                <SelectTrigger><SelectValue /></SelectTrigger>
                                <SelectContent>
                                  <SelectItem value="single">Single Choice</SelectItem>

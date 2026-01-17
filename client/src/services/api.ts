@@ -223,6 +223,7 @@ export interface Blog {
   viewCount: number;
   likeCount: number;
   readingTime: number;
+  isLiked?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -937,7 +938,7 @@ export const api = {
     return this.getQuizById(id);
   },
 
-  async enrollInExam(_examId: string): Promise<{ success: boolean }> {
+  async enrollInExam(): Promise<{ success: boolean }> {
     return { success: true };
   },
 

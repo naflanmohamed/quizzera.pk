@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Star, MessageCircle, Send, User } from "lucide-react";
+import { Star, MessageCircle, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api, { Mentor } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
